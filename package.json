@@ -17,6 +17,7 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
+    "nodemailer": "^7.0.6",
     "pg": "^8.11.1",
     "swagger-ui-express": "^5.0.0",
     "winston": "^3.8.2",
