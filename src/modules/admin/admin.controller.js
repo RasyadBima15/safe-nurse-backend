@@ -11,57 +11,6 @@ export async function getAdmin(req, res) {
   }
 }
 
-export async function registerAdmin(req, res) {
-  try {
-    const { id_user, email } = req.body;
-
-    if (!id_user || !email) {
-      return res.status(400).json({ message: "id_user dan email wajib diisi" });
-    }
-
-    const { data: userData, error: userCheckError } = await supabase
-      .from("users")
-      .select("id_user, role")
-      .eq("id_user", id_user)
-      .maybeSingle();
-
-    if (userCheckError) {
-      return res.status(500).json({ message: "Gagal cek user: " + userCheckError.message });
-    }
-
-    if (!userData) {
-      return res.status(404).json({ message: "User dengan id_user tersebut tidak ditemukan" });
-    }
-
-    if (userData.role !== "super_admin") {
-      return res.status(403).json({ message: "User bukan super_admin" });
-    }
-
-    const { error: adminError } = await supabase
-      .from("super_admin")
-      .insert([{ id_user }]);
-
-    if (adminError) {
-      return res.status(500).json({ message: "Gagal tambah super_admin: " + adminError.message });
-    }
-
-    const { error: updateError } = await supabase
-      .from("users")
-      .update({ email })
-      .eq("id_user", id_user);
-
-    if (updateError) {
-      return res.status(500).json({ message: "Gagal update email user: " + updateError.message });
-    }
-
-    res.status(201).json({
-      message: "Super Admin berhasil didaftarkan"
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-}
-
 export async function updateAdmin(req, res) {
   try {
     const { id_user, email } = req.body;

@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const emailTemplates = {
-  passwordReset: (resetLink, username) => ({
+  passwordReset: (resetLink) => ({
     subject: 'Reset Password - SAFE-Nurse',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -19,7 +19,7 @@ const emailTemplates = {
         </div>
         
         <div style="padding: 30px; background-color: #f9fafb;">
-          <h2 style="color: #1f2937; margin-bottom: 20px;">Halo ${username}!</h2>
+          <h2 style="color: #1f2937; margin-bottom: 20px;">👋 Hai!</h2>
           
           <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
             Kami menerima permintaan untuk mereset password akun SAFE-Nurse Anda.

@@ -4,6 +4,7 @@ import { transporter, emailTemplates } from '../../config/email.js';
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { getMakassarTimestamp } from '../../utils/util.js';
+import { nanoid } from 'nanoid';
 
 export async function sendTokenThroughEmail(req, res) {
   try {
@@ -15,7 +16,7 @@ export async function sendTokenThroughEmail(req, res) {
 
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("username, email")
+      .select("email")
       .eq("email", email)
       .maybeSingle();
 
@@ -29,11 +30,12 @@ export async function sendTokenThroughEmail(req, res) {
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const id = nanoid();
 
     const { error: resetError } = await supabase
       .from("password_resets")
       .upsert(
-        { email, token: resetToken, expires_at: expiresAt },
+        { id, email, token: resetToken, expires_at: expiresAt },
         { onConflict: "email" }
       );
 
@@ -45,8 +47,7 @@ export async function sendTokenThroughEmail(req, res) {
 
     try {
         const emailContent = emailTemplates.passwordReset(
-            resetLink,
-            user.username
+            resetLink
         );
 
         await transporter.sendMail({

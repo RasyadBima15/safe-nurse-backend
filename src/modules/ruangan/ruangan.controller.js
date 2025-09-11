@@ -1,5 +1,6 @@
 import { supabase } from '../../config/db.js';
 import logger from '../../config/logger.js'
+import { nanoid } from 'nanoid';
 
 export async function getRuangan(req, res) {
   try {
@@ -15,13 +16,15 @@ export async function registerRuangan(req, res) {
   try {
     const { nama_ruangan } = req.body
 
+    const id_ruangan = nanoid();
+
     if (!nama_ruangan) {
       return res.status(400).json({ message: "Nama ruangan wajib diisi" })
     }
 
     const { data, error } = await supabase
       .from("ruangan")
-      .insert([{ nama_ruangan }])
+      .insert([{ id_ruangan, nama_ruangan }])
       .select()
 
     if (error) {

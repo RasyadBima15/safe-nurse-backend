@@ -3,7 +3,7 @@ import logger from '../../config/logger.js'
 
 export async function getUsers(req, res) {
   try {
-    const { data, error } = await supabase.from('users').select('id_user, username, email, role');
+    const { data, error } = await supabase.from('users').select('id_user, email, role');
     if (error) throw error;
     res.json(data);
   } catch (error) {
