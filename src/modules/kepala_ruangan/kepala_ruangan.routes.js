@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { getKepalaRuangan, updateKepalaRuangan } from './kepala_ruangan.controller.js';
+import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.get('/', getKepalaRuangan);
-router.put('/update', updateKepalaRuangan);
+router.get('/', authenticateToken, authorizeRoles("super_admin"), getKepalaRuangan);
+router.put('/update', authenticateToken, authorizeRoles("kepala_ruangan"), updateKepalaRuangan);
 
 export default router;
