@@ -2,6 +2,7 @@ import { supabase } from '../../config/db.js';
 import logger from '../../config/logger.js'
 import { generateKodeLaporan, requiredFieldsForConfirmation, requiredFieldsForAI, hitungSkor} from '../../utils/util.js';
 import fetch from 'node-fetch';
+import { nanoid } from 'nanoid';
 
 async function callGeminiAPI(body) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -10,9 +11,13 @@ async function callGeminiAPI(body) {
     const systemPrompt = `
         Anda adalah asisten ahli untuk manajemen risiko insiden di rumah sakit. Tugas Anda ada tiga:
         1.  **Pembersihan & Standardisasi Data**: Perbaiki, rapikan, dan standarisasikan data input.
-            - Untuk semua field teks (seperti nama_pasien, unit_yang_melaporkan, lokasi_insiden, judul_insiden, kronologi, tindakan_awal, tindakan_oleh): perbaiki kesalahan ejaan, tata bahasa, spasi berlebih, dan gunakan huruf kapital yang sesuai untuk menghasilkan teks yang profesional dan jelas.
+            - Untuk semua field teks (seperti unit_yang_melaporkan, lokasi_insiden, judul_insiden, kronologi, tindakan_awal, tindakan_oleh): perbaiki kesalahan ejaan, tata bahasa, spasi berlebih, dan gunakan huruf kapital yang sesuai untuk menghasilkan teks yang profesional dan jelas.
             - Untuk 'umur': konversi teks menjadi angka integer (contoh: 'enampuluh dua' menjadi 62).
             - Untuk 'jenis_kelamin': standarisasikan menjadi 'Laki-laki' atau 'Perempuan'.
+            - Untuk 'nama_pasien': Ekstrak nama asli pasien dengan menghapus semua bentuk sapaan, panggilan, dan gelar (misalnya: 'Bapak', 'Ibu', 'Bp.', 'Tn.', 'Ny.', 'Sdr.', 'An.', 'Dr.', 'H.', 'Hj.', dll.). Setelah itu, format nama yang sudah bersih ke dalam "Title Case" (setiap kata diawali huruf kapital).
+              - Contoh 1: Input 'bpk. budi setiawan' -> Output 'Budi Setiawan'
+              - Contoh 2: Input 'IBU HJ. SITI AISYAH S.KED' -> Output 'Siti Aisyah'
+              - Contoh 3: Input 'An. Michael' -> Output 'Michael'
         2.  **Penentuan Kategori**: Berdasarkan data yang diberikan, tentukan nilai untuk kolom 'kategori' menggunakan algoritma logika berikut:
             - JIKA insiden TIDAK mengenai pasien DAN insiden BELUM TERJADI (baru potensi) MAKA kategori = 'KPC'.
             - JIKA insiden TIDAK mengenai pasien DAN insiden SUDAH TERJADI tapi berhasil dicegah MAKA kategori = 'KNC'.
@@ -130,7 +135,7 @@ export async function cleanLaporanUsingLLM(req, res) {
 
         const { data: cleanedData, usage } = await callGeminiAPI(body);
 
-        console.log("Data berhasil diolah oleh AI:", cleanedData);
+        // console.log("Data berhasil diolah oleh AI:", cleanedData);
 
         if (usage && usage.promptTokenCount) {
             console.log(`Monitoring Penggunaan Token: ${usage.promptTokenCount} token digunakan untuk input.`);
@@ -167,7 +172,7 @@ export async function generateLaporan(req, res) {
 
         const { data: userExists, error: userError } = await supabase
             .from("perawat")
-            .select("id_perawat")
+            .select("id_perawat, id_user")
             .eq("id_perawat", body.id_perawat)
             .maybeSingle();
 
@@ -228,6 +233,22 @@ export async function generateLaporan(req, res) {
         if (error) {
             // logger.info("❌ Error saat insert laporan:", error);
             return res.status(500).json({ error: error.message });
+        }
+
+        const id_notifikasi = nanoid();
+        const message = `Laporan dengan kode laporan ${kode_laporan} sudah diterima dan sedang ditindak lanjuti oleh validator`;
+
+        const { error: notifError } = await supabase.from("notifikasi").insert([
+        {
+            id_notifikasi,
+            id_user: userExists.id_user,
+            message,
+            status: "belum_dibaca",
+        },
+        ]);
+
+        if (notifError) {
+        return res.status(500).json({ error: notifError.message });
         }
 
         // logger.info("✅ Laporan berhasil dibuat");

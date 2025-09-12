@@ -89,23 +89,72 @@ export async function register(req, res) {
 
 export async function login(req, res) {
   try {
-    const { email, password } = req.body
+    const { email, password } = req.body;
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single()
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email dan password wajib diisi" });
+    }
 
-    if (error || !data) return res.status(401).json({ message: error ? error.message : 'User not found' })
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
 
-    const isMatch = await bcrypt.compare(password, data.password_hash)
-    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' })
+    if (error || !user) {
+      return res.status(401).json({
+        message: error ? error.message : "User not found",
+      });
+    }
 
-    const token = jwt.sign({ id: data.id }, process.env.JWT_SECRET, { expiresIn: '1h' })
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-    res.json({ token, id_user: data.id_user })
+    const token = jwt.sign(
+      { id_user: user.id_user, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    let response = { token, id_user: user.id_user };
+
+    if (user.role === "perawat") {
+      const { data: perawat } = await supabase
+        .from("perawat")
+        .select("id_perawat, id_ruangan")
+        .eq("id_user", user.id_user)
+        .maybeSingle();
+      response = { ...response, ...perawat };
+    } else if (user.role === "kepala_ruangan") {
+      const { data: kepala } = await supabase
+        .from("kepala_ruangan")
+        .select("id_kepala_ruangan, id_ruangan")
+        .eq("id_user", user.id_user)
+        .maybeSingle();
+      response = { ...response, ...kepala };
+    } else if (user.role === "ipcn") {
+      const { data: ipcn } = await supabase
+        .from("ipcn")
+        .select("id_ipcn, id_ruangan")
+        .eq("id_user", user.id_user)
+        .maybeSingle();
+      response = { ...response, ...ipcn };
+    } else if (user.role === "verifikator") {
+      const { data: verifikator } = await supabase
+        .from("verifikator")
+        .select("id_verifikator")
+        .eq("id_user", user.id_user)
+        .maybeSingle();
+      response = { ...response, ...verifikator };
+    } else if (user.role === "super_admin") {
+      response = { token, id_user: user.id_user };
+    }
+
+    return res.json(response);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    return res.status(500).json({ error: error.message });
   }
 }
+

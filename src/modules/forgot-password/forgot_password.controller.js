@@ -130,6 +130,49 @@ export async function resetPassword(req, res) {
   }
 }
 
+export async function changePassword(req, res) {
+  try {
+    const { id_user, oldPassword, newPassword } = req.body;
+
+    if ( !id_user || !oldPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "ID User, Old Password dan New Password baru wajib diisi" });
+    }
+
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id_user", id_user)
+      .maybeSingle();
+    if (userError) {
+      return res.status(500).json({ message: "Gagal cek user: " + userError.message });
+    }
+    if (!user) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Password lama tidak sesuai" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+ 
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ password_hash: hashedPassword })
+      .eq("id_user", id_user);
+    if (updateError) {
+      return res.status(500).json({ message: "Gagal update password: " + updateError.message });
+    }
+
+    res.status(200).json({ message: "Password berhasil direset" });
+  } catch (err) {
+    res.status(500).json({ message: err.message })
+  }
+}
+
 
 
 

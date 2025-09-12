@@ -14,6 +14,7 @@ import ipcnRoutes from './modules/ipcn/ipcn.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import forgotPasswordRoutes from './modules/forgot-password/forgot_password.routes.js';
 import laporanRoutes from './modules/laporan/laporan.routes.js';
+import notifikasiRoutes from './modules/notifikasi/notifikasi.routes.js';
 
 dotenv.config();
 const app = express();
@@ -33,5 +34,6 @@ app.use('/api/ipcn', ipcnRoutes);
 app.use('/api/super_admin', adminRoutes);
 app.use('/api/forgot_password', forgotPasswordRoutes);
 app.use('/api/laporan', laporanRoutes);
+app.use('/api/notifikasi', notifikasiRoutes);
 
 export default app;
