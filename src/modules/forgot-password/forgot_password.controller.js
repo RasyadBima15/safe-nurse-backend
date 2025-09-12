@@ -3,7 +3,7 @@ import logger from '../../config/logger.js'
 import { transporter, emailTemplates } from '../../config/email.js';
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import { getMakassarTimestamp } from '../../utils/util.js';
+import { getMakassarTimestamp } from '../../utils/getMakassarTimestamp.js';
 import { nanoid } from 'nanoid';
 
 export async function sendTokenThroughEmail(req, res) {

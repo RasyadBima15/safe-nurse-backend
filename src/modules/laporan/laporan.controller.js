@@ -1,6 +1,8 @@
 import { supabase } from '../../config/db.js';
 import logger from '../../config/logger.js'
-import { generateKodeLaporan, requiredFieldsForConfirmation, requiredFieldsForAI, hitungSkor} from '../../utils/util.js';
+import { generateKodeLaporan } from '../../utils/generateKodeLaporan.js';
+import { hitungSkor } from '../../utils/scoring.js';
+import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/requiredFields.js';
 import fetch from 'node-fetch';
 import { nanoid } from 'nanoid';
 
