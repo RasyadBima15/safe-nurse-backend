@@ -40,3 +40,26 @@ export async function getNotifikasi(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function getNewNotifikasi(req, res) {
+  try {
+    const { id_user } = req.query;
+    if (!id_user) {
+      return res.status(400).json({ message: "ID User wajib diisi" });
+    }
+
+    const { data, error } = await supabase
+      .from("notifikasi")
+      .select("id_notifikasi, message, status, created_at")
+      .eq("id_user", id_user)
+      .eq("status", "belum_dibaca")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ message: "Notifikasi tidak ditemukan" });
+    }
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

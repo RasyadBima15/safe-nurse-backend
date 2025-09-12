@@ -11,7 +11,12 @@ async function callGeminiAPI(body) {
     const systemPrompt = `
         Anda adalah asisten ahli untuk manajemen risiko insiden di rumah sakit. Tugas Anda ada tiga:
         1.  **Pembersihan & Standardisasi Data**: Perbaiki, rapikan, dan standarisasikan data input.
-            - Untuk semua field teks (seperti unit_yang_melaporkan, lokasi_insiden, judul_insiden, kronologi, tindakan_awal, tindakan_oleh): perbaiki kesalahan ejaan, tata bahasa, spasi berlebih, dan gunakan huruf kapital yang sesuai untuk menghasilkan teks yang profesional dan jelas.
+            - Untuk field teks (khusus nama_pasien, umur, jenis_kelamin, unit_yang_melaporkan, lokasi_insiden, judul_insiden, kronologi, tindakan_awal, tindakan_oleh):
+                - Perbaiki kesalahan ejaan, tata bahasa, dan penggunaan kata yang kurang tepat.
+                - Hilangkan spasi berlebih dan kata tidak baku.
+                - Gunakan huruf kapital sesuai kaidah (misalnya huruf pertama nama, awal kalimat, nama unit, dsb).
+                - Buat teks menjadi singkat, profesional, dan mudah dipahami.
+                - Jangan mengubah arti atau informasi penting dari teks.
             - Untuk 'umur': konversi teks menjadi angka integer (contoh: 'enampuluh dua' menjadi 62).
             - Untuk 'jenis_kelamin': standarisasikan menjadi 'Laki-laki' atau 'Perempuan'.
             - Untuk 'nama_pasien': Ekstrak nama asli pasien dengan menghapus semua bentuk sapaan, panggilan, dan gelar (misalnya: 'Bapak', 'Ibu', 'Bp.', 'Tn.', 'Ny.', 'Sdr.', 'An.', 'Dr.', 'H.', 'Hj.', dll.). Setelah itu, format nama yang sudah bersih ke dalam "Title Case" (setiap kata diawali huruf kapital).
@@ -225,7 +230,6 @@ export async function generateLaporan(req, res) {
             skor_probabilitas,
             skor_grading,
             grading,
-            status: "diteruskan ke validator",
             },
         ])
         .select();
@@ -242,8 +246,7 @@ export async function generateLaporan(req, res) {
         {
             id_notifikasi,
             id_user: userExists.id_user,
-            message,
-            status: "belum_dibaca",
+            message
         },
         ]);
 
