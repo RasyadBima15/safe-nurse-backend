@@ -6,7 +6,58 @@ import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/
 import { callGeminiAPI } from '../../config/callGeminiAPI.js';
 import { nanoid } from 'nanoid';
 
-export async function getAllLaporan(req, res) {
+export async function getAllLaporanForVerifikator(req, res) {
+    try {
+        //ambil yang statusnya "diteruskan ke verifikator"
+        const { data, error } = await supabase
+            .from("laporan")
+            .select("*")
+            .eq("status", "diteruskan ke verifikator")
+            .order("tgl_waktu_pelaporan", { ascending: false });
+        if (error) {
+            throw new Error(`Gagal mengambil data laporan: ${error.message}`);
+        }
+
+        const laporanWithNames = await Promise.all(data.map(async (laporan) => {
+            const { data: perawatData, error: perawatError } = await supabase
+                .from("perawat")
+                .select("nama_perawat")
+                .eq("id_perawat", laporan.id_perawat)
+                .maybeSingle();
+            if (perawatError) {
+                throw new Error(`Gagal cek perawat: ${perawatError.message}`);
+            }
+            if (!perawatData) {
+                return res.status(404).json({ message: "Perawat dengan ID tersebut tidak ditemukan" });
+            }
+            const { data: ruanganData, error: ruanganError } = await supabase
+                .from("ruangan")
+                .select("nama_ruangan")
+                .eq("id_ruangan", laporan.id_ruangan)
+                .maybeSingle();
+            if (ruanganError) {
+                throw new Error(`Gagal cek ruangan: ${ruanganError.message}`);
+            }
+            if (!ruanganData) {
+                return res.status(404).json({ message: "Ruangan dengan ID tersebut tidak ditemukan" });
+            }
+            return {
+                ...laporan,
+                nama_perawat: perawatData ? perawatData.nama_perawat : null,
+                nama_ruangan: ruanganData ? ruanganData.nama_ruangan : null
+            };
+        }));
+
+        return res.status(200).json({
+            message: "Data laporan berhasil diambil.",
+            data: laporanWithNames
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export async function getAllLaporanForAdmin(req, res) {
     try {
         const { data, error } = await supabase
             .from("laporan")
