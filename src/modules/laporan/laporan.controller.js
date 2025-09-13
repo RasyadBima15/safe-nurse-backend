@@ -6,6 +6,26 @@ import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/
 import { callGeminiAPI } from '../../config/callGeminiAPI.js';
 import { nanoid } from 'nanoid';
 
+export async function getLaporanByIdLaporan(req, res) {
+    try {
+        const { kode_laporan } = req.params;
+        const { data, error } = await supabase
+            .from("laporan")
+            .select("*")
+            .eq("kode_laporan", kode_laporan)
+            .single();
+        if (error) {
+            throw new Error(`Gagal mengambil data laporan: ${error.message}`);
+        }
+        return res.status(200).json({
+            message: "Data laporan berhasil diambil.",
+            data
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 export async function getLaporanForChiefNursing(req, res) {
     try {
         //ambil yang statusnya "diteruskan ke verifikator" atau "laporan disetujui verifikator"
