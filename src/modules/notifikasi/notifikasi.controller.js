@@ -1,4 +1,5 @@
 import { supabase } from '../../config/db.js';
+import { nanoid } from 'nanoid';
 
 export async function getNotifikasi(req, res) {
   try {
@@ -59,6 +60,46 @@ export async function getNewNotifikasi(req, res) {
       return res.status(404).json({ message: "Notifikasi tidak ditemukan" });
     }
     res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function createNotifikasi(req, res) {
+  try {
+    const { message, roles } = req.body;
+    if (!message || !roles || roles.length === 0) {
+      return res.status(400).json({ message: "Message dan roles wajib diisi" });
+    }
+    let id_users = [];
+    if (roles.includes("all")) {
+      const { data, error } = await supabase.from("users").select("id_user");
+      if (error) throw error;
+      id_users = data.map(user => user.id_user);
+    } else {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id_user")
+        .in("role", roles);
+      if (error) throw error;
+      id_users = data.map(user => user.id_user);
+    }
+    if (id_users.length === 0) {
+      return res.status(404).json({ message: "Tidak ada user yang ditemukan untuk role tersebut" });
+    }
+
+    const { error: insertError } = await supabase
+      .from("notifikasi")
+      .insert(
+        id_users.map(id_user => ({
+          id_notifikasi: nanoid(),
+          id_user,
+          message,
+        }))
+      );
+    if (insertError) throw insertError;
+
+    res.status(201).json({ message: "Notifikasi berhasil dikirim" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
