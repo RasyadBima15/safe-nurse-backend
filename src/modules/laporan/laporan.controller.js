@@ -108,7 +108,7 @@ export async function getAllLaporanForAdmin(req, res) {
 
 export async function getLaporanByIdPerawat(req, res) {
     try {
-        const { id_perawat } = req.query;
+        const { id_perawat } = req.params;
 
         if (!id_perawat) {
             return res.status(400).json({ message: "ID Perawat wajib diisi" });
@@ -165,7 +165,7 @@ export async function getLaporanByIdPerawat(req, res) {
 
 export async function getLaporanByIdRuangan(req, res) {
     try {
-        const { id_ruangan } = req.query;
+        const { id_ruangan } = req.params;
         if (!id_ruangan) {
             return res.status(400).json({ message: "ID Ruangan wajib diisi" });
         }
@@ -215,6 +215,8 @@ export async function getLaporanByIdRuangan(req, res) {
     }
 }
 
+// export async function updateLaporanByKepalaRuanganOrIPCN(req, res)
+
 export async function cleanLaporanUsingLLM(req, res) {
     try {
         const body = req.body;
@@ -246,7 +248,6 @@ export async function cleanLaporanUsingLLM(req, res) {
         res.status(500).json({ error: error.message });
     }
 }
-
 
 export async function generateLaporan(req, res) {
     try {

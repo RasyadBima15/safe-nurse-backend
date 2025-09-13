@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 
 export async function getNotifikasi(req, res) {
   try {
-    const { id_user } = req.query;
+    const { id_user } = req.params;
     if (!id_user) {
       return res.status(400).json({ message: "ID User wajib diisi" });
     }
@@ -44,7 +44,7 @@ export async function getNotifikasi(req, res) {
 
 export async function getNewNotifikasi(req, res) {
   try {
-    const { id_user } = req.query;
+    const { id_user } = req.params;
     if (!id_user) {
       return res.status(400).json({ message: "ID User wajib diisi" });
     }

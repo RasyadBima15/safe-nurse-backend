@@ -7,8 +7,8 @@ const router = Router();
 router.post('/generate', authenticateToken, authorizeRoles("perawat"), generateLaporan);
 router.post('/clean', authenticateToken, authorizeRoles("perawat"), cleanLaporanUsingLLM);
 router.get('/verifikator', authenticateToken, authorizeRoles("verifikator"), getAllLaporanForVerifikator);
-router.get('/perawat', authenticateToken, authorizeRoles("perawat"), getLaporanByIdPerawat);
-router.get('/ruangan', authenticateToken, authorizeRoles("kepala_ruangan", "ipcn"), getLaporanByIdRuangan);
+router.get('/perawat/:id_perawat', authenticateToken, authorizeRoles("perawat"), getLaporanByIdPerawat);
+router.get('/ruangan/:id_ruangan', authenticateToken, authorizeRoles("kepala_ruangan", "ipcn"), getLaporanByIdRuangan);
 router.get('/admin', authenticateToken, authorizeRoles("super_admin"), getAllLaporanForAdmin);
 
 export default router;
