@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { cleanLaporanUsingLLM, generateLaporan, getLaporanByIdPerawat, getAllLaporanForVerifikator, getLaporanByIdRuangan, getAllLaporanForAdmin } from './laporan.controller.js';
+import { cleanLaporanUsingLLM, generateLaporan, getLaporanByIdPerawat, getAllLaporanForVerifikator, getLaporanByIdRuangan, getAllLaporanForAdmin, getLaporanForChiefNursing } from './laporan.controller.js';
 import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 
 const router = Router();
@@ -8,7 +8,8 @@ router.post('/generate', authenticateToken, authorizeRoles("perawat"), generateL
 router.post('/clean', authenticateToken, authorizeRoles("perawat"), cleanLaporanUsingLLM);
 router.get('/verifikator', authenticateToken, authorizeRoles("verifikator"), getAllLaporanForVerifikator);
 router.get('/perawat/:id_perawat', authenticateToken, authorizeRoles("perawat"), getLaporanByIdPerawat);
-router.get('/ruangan/:id_ruangan', authenticateToken, authorizeRoles("kepala_ruangan", "ipcn"), getLaporanByIdRuangan);
+router.get('/ruangan/:id_ruangan', authenticateToken, authorizeRoles("kepala_ruangan"), getLaporanByIdRuangan);
+router.get('/chief_nursing', authenticateToken, authorizeRoles("chief_nursing"), getLaporanForChiefNursing);
 router.get('/admin', authenticateToken, authorizeRoles("super_admin"), getAllLaporanForAdmin);
 
 export default router;

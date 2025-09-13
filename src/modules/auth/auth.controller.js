@@ -12,11 +12,11 @@ export async function register(req, res) {
       return res.status(400).json({ message: "Email, password, role, dan nama wajib diisi" });
     }
 
-    if (!['super_admin', 'perawat', 'kepala_ruangan', 'verifikator', 'ipcn'].includes(role)) {
+    if (!['super_admin', 'perawat', 'kepala_ruangan', 'verifikator', 'chief_nursing'].includes(role)) {
       return res.status(400).json({ message: "Role tidak valid" });
     }
 
-    if (['perawat', 'kepala_ruangan', 'ipcn'].includes(role) && !id_ruangan) {
+    if (['perawat', 'kepala_ruangan'].includes(role) && !id_ruangan) {
       return res.status(400).json({ message: "id_ruangan wajib diisi untuk role " + role });
     }
 
@@ -51,13 +51,12 @@ export async function register(req, res) {
       if (error) throw error;
     }
 
-    if (role === "ipcn") {
-      const id_ipcn = nanoid();
-      const { error } = await supabase.from("ipcn").insert([{
-        id_ipcn,
+    if (role === "chief_nursing") {
+      const id_chief_nursing = nanoid();
+      const { error } = await supabase.from("chief_nursing").insert([{
+        id_chief_nursing,
         id_user,
-        id_ruangan,
-        nama_ipcn: nama
+        nama_chief_nursing: nama
       }]);
       if (error) throw error;
     }
@@ -126,30 +125,30 @@ export async function login(req, res) {
         .select("id_perawat, id_ruangan")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...perawat };
+      response = { ...response, ...perawat, role: user.role };
     } else if (user.role === "kepala_ruangan") {
       const { data: kepala } = await supabase
         .from("kepala_ruangan")
         .select("id_kepala_ruangan, id_ruangan")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...kepala };
-    } else if (user.role === "ipcn") {
-      const { data: ipcn } = await supabase
-        .from("ipcn")
-        .select("id_ipcn, id_ruangan")
+      response = { ...response, ...kepala, role: user.role };
+    } else if (user.role === "chief_nursing") {
+      const { data: chiefNursing } = await supabase
+        .from("chief_nursing")
+        .select("id_chief_nursing")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...ipcn };
+      response = { ...response, ...chiefNursing, role: user.role };
     } else if (user.role === "verifikator") {
       const { data: verifikator } = await supabase
         .from("verifikator")
         .select("id_verifikator")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...verifikator };
+      response = { ...response, ...verifikator, role: user.role };
     } else if (user.role === "super_admin") {
-      response = { token, id_user: user.id_user };
+      response = { token, id_user: user.id_user, role: user.role };
     }
 
     return res.json(response);
