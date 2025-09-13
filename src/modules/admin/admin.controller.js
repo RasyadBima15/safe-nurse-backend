@@ -13,7 +13,8 @@ export async function getAdmin(req, res) {
 
 export async function updateAdmin(req, res) {
   try {
-    const { id_user, email } = req.body;
+    const { id_user } = req.params;
+    const { email } = req.body;
 
     if (!id_user) {
       return res.status(400).json({ message: "id_user wajib diisi" });

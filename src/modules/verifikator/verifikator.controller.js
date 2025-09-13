@@ -13,7 +13,8 @@ export async function getVerifikator(req, res) {
 
 export async function updateVerifikator(req, res) {
   try {
-    const { id_user, nama_verifikator, jabatan, unit_kerja, no_telp } = req.body;
+    const { id_user } = req.params;
+    const { nama_verifikator, jabatan, unit_kerja, no_telp } = req.body;
 
     if (!id_user || !nama_verifikator || !jabatan || !unit_kerja || !no_telp) {
       return res.status(400).json({ message: "Semua field wajib diisi" });

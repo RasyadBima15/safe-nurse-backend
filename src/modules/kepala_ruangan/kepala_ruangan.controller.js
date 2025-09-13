@@ -13,7 +13,8 @@ export async function getKepalaRuangan(req, res) {
 
 export async function updateKepalaRuangan(req, res) {
   try {
-    const { id_user, nama_kepala_ruangan, jabatan, no_telp } = req.body;
+    const { id_user } = req.params;
+    const { nama_kepala_ruangan, jabatan, no_telp } = req.body;
 
     if (!id_user || !nama_kepala_ruangan || !jabatan || !no_telp) {
       return res.status(400).json({ message: "Semua field wajib diisi" });

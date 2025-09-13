@@ -13,7 +13,8 @@ export async function getChiefNursing(req, res) {
 
 export async function updateChiefNursing(req, res) {
   try {
-    const { id_user, nama_chief_nursing, jabatan, no_telp } = req.body;
+    const { id_user } = req.params;
+    const { nama_chief_nursing, jabatan, no_telp } = req.body;
 
     if (!id_user || !nama_chief_nursing || !jabatan || !no_telp ) {
       return res.status(400).json({ message: "Semua field wajib diisi" });

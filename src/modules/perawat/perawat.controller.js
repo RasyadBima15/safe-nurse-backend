@@ -13,7 +13,8 @@ export async function getPerawat(req, res) {
 
 export async function updatePerawat(req, res) {
   try {
-    const { id_user, nama_perawat } = req.body;
+    const { id_user } = req.params;
+    const { nama_perawat } = req.body;
 
     if (!id_user || !nama_perawat ) {
       return res.status(400).json({ message: "Semua field wajib diisi" });

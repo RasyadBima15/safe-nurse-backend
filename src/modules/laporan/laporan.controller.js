@@ -8,11 +8,11 @@ import { nanoid } from 'nanoid';
 
 export async function getLaporanForChiefNursing(req, res) {
     try {
-        //ambil yang statusnya "diteruskan ke validator" atau "diteruskan ke verifikator"
+        //ambil yang statusnya "diteruskan ke verifikator" atau "laporan disetujui verifikator"
         const { data, error } = await supabase
             .from("laporan")
             .select("*")
-            .or("status.eq.diteruskan ke validator, status.eq.diteruskan ke verifikator")
+            .or("status.eq.diteruskan ke verifikator, status.eq.laporan disetujui verifikator")
             .order("tgl_waktu_pelaporan", { ascending: false });
         if (error) {
             throw new Error(`Gagal mengambil data laporan: ${error.message}`);
@@ -58,11 +58,11 @@ export async function getLaporanForChiefNursing(req, res) {
 
 export async function getAllLaporanForVerifikator(req, res) {
     try {
-        //ambil yang statusnya "diteruskan ke verifikator"
+        //ambil yang statusnya "diteruskan ke verifikator" atau "laporan disetujui verifikator"
         const { data, error } = await supabase
             .from("laporan")
             .select("*")
-            .eq("status", "diteruskan ke verifikator")
+            .or("status.eq.diteruskan ke verifikator, status.eq.laporan disetujui verifikator")
             .order("tgl_waktu_pelaporan", { ascending: false });
         if (error) {
             throw new Error(`Gagal mengambil data laporan: ${error.message}`);
