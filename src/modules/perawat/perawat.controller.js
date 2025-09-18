@@ -16,7 +16,11 @@ export async function updatePerawat(req, res) {
     const { id_user } = req.params;
     const { nama_perawat } = req.body;
 
-    if (!id_user || !nama_perawat ) {
+    if (!id_user) {
+      return res.status(400).json({ message: "id_user wajib diisi" });
+    }
+
+    if (!nama_perawat ) {
       return res.status(400).json({ message: "Semua field wajib diisi" });
     }
 

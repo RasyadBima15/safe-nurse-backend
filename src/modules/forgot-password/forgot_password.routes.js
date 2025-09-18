@@ -5,6 +5,6 @@ const router = Router();
 
 router.post('/', sendTokenThroughEmail);
 router.post('/reset_password', resetPassword);
-router.post('/change_password', changePassword);
+router.post('/change_password/:id_user', changePassword);
 
 export default router;

@@ -28,14 +28,28 @@ function gradingClassification(skor) {
   }
 }
 
+function rekomendasiTindakan(grading) {
+  switch (grading) {
+    case "merah":
+      return "Dilakukan RCA paling lama 45 hari, membutuhkan tindakan segera, perhatian sampai direktur.";
+    case "kuning":
+      return "Dilakukan RCA paling lama 45 hari, kaji dengan detail & perlu tindakan segera serta membutuhkan perhatian top manajer.";
+    case "hijau":
+      return "Dilakukan investigasi sederhana paling lama 2 minggu, manajer / pimpinan klinis sebaiknya menilai dampak terhadap biaya dan kelola risiko.";
+    case "biru":
+      return "Dilakukan investigasi sederhana paling lambat 1 minggu, diselesaikan dengan prosedur rutin.";
+  }
+}
+
 function hitungSkor(dampak, probabilitas) {
   const skor_dampak = dampakScores[dampak];
   const skor_probabilitas = probabilitasScores[probabilitas];
 
   const skor_grading = skor_dampak * skor_probabilitas;
   const grading = gradingClassification(skor_grading);
+  const rekomendasi_tindakan = rekomendasiTindakan(grading);
 
-  return { skor_dampak, skor_probabilitas, skor_grading, grading };
+  return { skor_dampak, skor_probabilitas, skor_grading, grading, rekomendasi_tindakan };
 }
 
 module.exports = { hitungSkor };

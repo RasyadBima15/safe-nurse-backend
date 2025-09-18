@@ -16,7 +16,11 @@ export async function updateVerifikator(req, res) {
     const { id_user } = req.params;
     const { nama_verifikator, jabatan, unit_kerja, no_telp } = req.body;
 
-    if (!id_user || !nama_verifikator || !jabatan || !unit_kerja || !no_telp) {
+    if (!id_user) {
+      return res.status(400).json({ message: "id_user wajib diisi" });
+    }
+
+    if (!nama_verifikator || !jabatan || !unit_kerja || !no_telp) {
       return res.status(400).json({ message: "Semua field wajib diisi" });
     }
 

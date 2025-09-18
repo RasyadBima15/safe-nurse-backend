@@ -34,8 +34,7 @@ const requiredFieldsForConfirmation = [
   "tindakan_oleh",
   "dampak",
   "probabilitas",
-  "kategori", 
-  "rekomendasi_tindakan",
+  "kategori"
 ];
 
 module.exports = { requiredFieldsForConfirmation, requiredFieldsForAI };

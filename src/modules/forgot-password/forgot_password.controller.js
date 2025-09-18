@@ -132,12 +132,17 @@ export async function resetPassword(req, res) {
 
 export async function changePassword(req, res) {
   try {
-    const { id_user, oldPassword, newPassword } = req.body;
+    const { id_user } = req.params;
+    const { oldPassword, newPassword } = req.body;
 
-    if ( !id_user || !oldPassword || !newPassword) {
+    if (!id_user) {
+      return res.status(400).json({ message: "id_user wajib diisi" });
+    }
+
+    if (!oldPassword || !newPassword) {
       return res
         .status(400)
-        .json({ message: "ID User, Old Password dan New Password baru wajib diisi" });
+        .json({ message: "Old Password dan New Password baru wajib diisi" });
     }
 
     const { data: user, error: userError } = await supabase
