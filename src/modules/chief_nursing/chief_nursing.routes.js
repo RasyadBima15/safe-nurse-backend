@@ -5,6 +5,6 @@ import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 const router = Router();
 
 router.get('/', authenticateToken, authorizeRoles("super_admin"), getChiefNursing);
-router.put('/update/:id_user', authenticateToken, authorizeRoles("chief_nursing"), updateChiefNursing);
+router.put('/update', authenticateToken, authorizeRoles("chief_nursing"), updateChiefNursing);
 
 export default router;

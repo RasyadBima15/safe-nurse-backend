@@ -1,5 +1,6 @@
 import { supabase } from '../../config/db.js';
-import logger from '../../config/logger.js'
+import logger from '../../config/logger.js';
+import { nanoid } from 'nanoid';
 
 export async function getVerifikator(req, res) {
   try {
@@ -13,8 +14,8 @@ export async function getVerifikator(req, res) {
 
 export async function updateVerifikator(req, res) {
   try {
-    const { id_user } = req.params;
     const { nama_verifikator, jabatan, unit_kerja, no_telp } = req.body;
+    const id_user = req.user?.id_user;
 
     if (!id_user) {
       return res.status(400).json({ message: "id_user wajib diisi" });
@@ -38,6 +39,23 @@ export async function updateVerifikator(req, res) {
       return res.status(404).json({ message: "Verifikator tidak ditemukan" });
     }
 
+    // ✅ Kirim notifikasi ke dirinya sendiri
+    if (id_user) {
+      const selfNotif = {
+        id_notifikasi: nanoid(),
+        id_user: id_user,
+        message: `Anda berhasil memperbarui data anda`,
+      };
+
+      const { error: notifError } = await supabase
+        .from("notifikasi")
+        .insert([selfNotif]);
+
+      if (notifError) {
+        console.error("Gagal insert notifikasi ke dirinya sendiri:", notifError.message);
+      }
+    }
+
     res.status(200).json({
       message: "Verifikator berhasil diperbarui"
     });
@@ -45,6 +63,7 @@ export async function updateVerifikator(req, res) {
     res.status(500).json({ message: err.message });
   }
 }
+
 
 
 

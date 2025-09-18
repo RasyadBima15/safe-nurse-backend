@@ -1,5 +1,6 @@
 import { supabase } from '../../config/db.js';
 import logger from '../../config/logger.js'
+import { nanoid } from 'nanoid';
 
 export async function getAdmin(req, res) {
   try {
@@ -13,8 +14,8 @@ export async function getAdmin(req, res) {
 
 export async function updateAdmin(req, res) {
   try {
-    const { id_user } = req.params;
     const { email } = req.body;
+    const id_user = req.user?.id_user; // user yang sedang login
 
     if (!id_user) {
       return res.status(400).json({ message: "id_user wajib diisi" });
@@ -45,6 +46,23 @@ export async function updateAdmin(req, res) {
 
     if (userError) {
       return res.status(500).json({ message: "Gagal update email user: " + userError.message });
+    }
+
+    // ✅ Kirim notifikasi ke dirinya sendiri
+    if (id_user) {
+      const selfNotif = {
+        id_notifikasi: nanoid(),
+        id_user: id_user,
+        message: `Anda berhasil memperbarui email anda`,
+      };
+
+      const { error: notifError } = await supabase
+        .from("notifikasi")
+        .insert([selfNotif]);
+
+      if (notifError) {
+        console.error("Gagal insert notifikasi ke dirinya sendiri:", notifError.message);
+      }
     }
 
     res.status(200).json({
