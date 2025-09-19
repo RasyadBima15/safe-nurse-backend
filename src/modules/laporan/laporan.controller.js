@@ -8,290 +8,566 @@ import { nanoid } from 'nanoid';
 import { sendWA } from '../../config/wa.js';
 
 export async function getLaporanByIdLaporan(req, res) {
-    try {
-        const { kode_laporan } = req.params;
+  try {
+    const { kode_laporan } = req.params;
+    const { id_user, role } = req.user;
 
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat:id_perawat(nama_perawat),
-                ruangan:id_ruangan(nama_ruangan)
-            `)
-            .eq("kode_laporan", kode_laporan)
-            .single();
+    // 1. Ambil data laporan utama
+    const { data: laporan, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat:id_perawat(nama_perawat),
+        ruangan:id_ruangan(nama_ruangan)
+      `)
+      .eq("kode_laporan", kode_laporan)
+      .single();
 
-        if (error) {
-            throw new Error(`Gagal mengambil data laporan: ${error.message}`);
-        }
+    if (laporanError) throw new Error(laporanError.message);
 
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    // 2. Ambil history aksi user ini
+    const { data: historyAksi, error: aksiError } = await supabase
+      .from("history_aksi")
+      .select("id_aksi, aksi, kategori, grading, rekomendasi_tindakan, created_at")
+      .eq("kode_laporan", kode_laporan)
+      .eq("id_user", id_user)
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    if (aksiError) throw new Error(aksiError.message);
+
+    // 3. Ambil history catatan user ini
+    const { data: historyCatatan, error: catatanError } = await supabase
+      .from("history_catatan")
+      .select("id_catatan, catatan, created_at")
+      .eq("kode_laporan", kode_laporan)
+      .eq("id_user", id_user)
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    if (catatanError) throw new Error(catatanError.message);
+
+    // 4. Ambil semua history aksi + role user
+    const { data: allHistoryAksi } = await supabase
+      .from("history_aksi")
+      .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+      .eq("kode_laporan", kode_laporan)
+      .order("created_at", { ascending: false });
+
+    const { data: allHistoryCatatan } = await supabase
+      .from("history_catatan")
+      .select("catatan, created_at, users(role)")
+      .eq("kode_laporan", kode_laporan)
+      .order("created_at", { ascending: false });
+
+    // Ambil history terbaru per role
+    const latestKepala = allHistoryAksi?.find(h => h.users?.role === "kepala_ruangan");
+    const latestCatatanKepala = allHistoryCatatan?.find(h => h.users?.role === "kepala_ruangan");
+
+    const latestChief = allHistoryAksi?.find(h => h.users?.role === "chief_nursing");
+    const latestCatatanChief = allHistoryCatatan?.find(h => h.users?.role === "chief_nursing");
+
+    const latestVerifikator = allHistoryAksi?.find(h => h.users?.role === "verifikator");
+    // const latestCatatanVerifikator = allHistoryCatatan?.find(h => h.users?.role === "verifikator");
+
+    // Helper kasih label "updated"
+    const markUpdated = (obj) => ({
+      kategori: obj?.kategori ? obj.kategori + " (Updated)" : laporan.kategori,
+      grading: obj?.grading ? obj.grading + " (Updated)" : laporan.grading,
+      rekomendasi_tindakan: obj?.rekomendasi_tindakan
+        ? obj.rekomendasi_tindakan + " (Updated)"
+        : laporan.rekomendasi_tindakan
+    });
+
+    // 5. Tentukan nilai kategori, grading, rekomendasi_tindakan berdasarkan role
+    let override = {
+      kategori: laporan.kategori,
+      grading: laporan.grading,
+      rekomendasi_tindakan: laporan.rekomendasi_tindakan
+    };
+
+    if (role === "kepala_ruangan") {
+      if (latestKepala) override = markUpdated(latestKepala);
+      if (latestVerifikator) override = markUpdated(latestVerifikator);
     }
+
+    if (role === "chief_nursing") {
+      if (latestKepala) override = latestKepala; // default dari kepala_ruangan
+      if (latestChief) override = markUpdated(latestChief);
+      if (latestVerifikator) override = markUpdated(latestVerifikator);
+    }
+
+    if (role === "verifikator") {
+      if (latestKepala) override = latestKepala; // default dari kepala_ruangan
+      if (latestVerifikator) override = markUpdated(latestVerifikator);
+    }
+
+    // Apply override ke laporan dengan fallback "-"
+    laporan.kategori = override.kategori || "-";
+    laporan.grading = override.grading || "-";
+    laporan.rekomendasi_tindakan = override.rekomendasi_tindakan || "-";
+
+    // 6. Siapkan extra validasi khusus untuk verifikator
+    let extraValidasi = {};
+    if (role === "verifikator") {
+    extraValidasi = {
+        validasi_kepala_ruangan: {
+        kategori: latestKepala?.kategori || "-",
+        grading: latestKepala?.grading || "-",
+        rekomendasi_tindakan: latestKepala?.rekomendasi_tindakan || "-",
+        catatan: latestCatatanKepala?.catatan || "-"
+        },
+        validasi_chief_nursing: {
+        kategori: latestChief?.kategori || "-",
+        grading: latestChief?.grading || "-",
+        rekomendasi_tindakan: latestChief?.rekomendasi_tindakan || "-",
+        catatan: latestCatatanChief?.catatan || "-"
+        }
+    };
+    }
+
+    // 7. Response
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: {
+        ...laporan,
+        ...extraValidasi,
+        history_aksi: historyAksi || [],
+        history_catatan: historyCatatan || []
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 export async function getLaporanForChiefNursing(req, res) {
-    try {
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat:id_perawat(nama_perawat),
-                ruangan:id_ruangan(nama_ruangan)
-            `)
-            .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
-            .order("tgl_waktu_pelaporan", { ascending: false });
+  try {
+    const { data: laporanList, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat:id_perawat(nama_perawat),
+        ruangan:id_ruangan(nama_ruangan)
+      `)
+      .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
+      .order("tgl_waktu_pelaporan", { ascending: false });
 
-        if (error) {
-            throw new Error(`Gagal mengambil data laporan: ${error.message}`);
+    if (laporanError) {
+      throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
+    }
+    if (!laporanList || laporanList.length === 0) {
+      return res.status(404).json({ message: "Tidak ada laporan untuk Chief Nursing" });
+    }
+
+    const laporanWithOverride = await Promise.all(
+      laporanList.map(async (laporan) => {
+        // --- Default dari laporan dulu
+        let override = {
+          kategori: laporan.kategori || "-",
+          grading: laporan.grading || "-",
+          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+        };
+
+        // --- Ambil history aksi terbaru untuk kepala_ruangan, chief_nursing, verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "chief_nursing", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          // Hierarki: kepala_ruangan -> chief_nursing -> verifikator
+          const latestKepala = allHistoryAksi.find((a) => a.users?.role === "kepala_ruangan");
+          const latestChief = allHistoryAksi.find((a) => a.users?.role === "chief_nursing");
+          const latestVerif = allHistoryAksi.find((a) => a.users?.role === "verifikator");
+
+          if (latestKepala) {
+            override.kategori = latestKepala.kategori || override.kategori;
+            override.grading = latestKepala.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestKepala.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+          if (latestChief) {
+            override.kategori = latestChief.kategori || override.kategori;
+            override.grading = latestChief.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestChief.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+          if (latestVerif) {
+            override.kategori = latestVerif.kategori || override.kategori;
+            override.grading = latestVerif.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestVerif.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
         }
 
-        const laporanWithOverride = data.map((laporan) => {
-            const override = { ...laporan };
+        // --- Ambil catatan terbaru per role ---
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "chief_nursing", "verifikator"])
+          .order("created_at", { ascending: false });
 
-            if (laporan.grading_verifikator) {
-                override.grading = laporan.grading_verifikator;
-            } else if (laporan.grading_chief_nursing) {
-                override.grading = laporan.grading_chief_nursing;
-            }
+        const latestCatatanKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestCatatanChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
+        const latestCatatanVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
 
-            if (laporan.kategori_verifikator) {
-                override.kategori = laporan.kategori_verifikator;
-            } else if (laporan.kategori_chief_nursing) {
-                override.kategori = laporan.kategori_chief_nursing;
-            }
+        return {
+          ...laporan,
+          kategori: override.kategori || "-",
+          grading: override.grading || "-",
+          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+          catatan_verifikator: latestCatatanVerif?.catatan || "-"
+        };
+      })
+    );
 
-            if (laporan.rekomendasi_tindakan_verifikator) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_verifikator;
-            } else if (laporan.rekomendasi_tindakan_chief_nursing) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_chief_nursing;
-            }
-
-            return override;
-        });
-
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: laporanWithOverride
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 export async function getAllLaporanForVerifikator(req, res) {
-    try {
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat:id_perawat(id_perawat, nama_perawat),
-                ruangan:id_ruangan(id_ruangan, nama_ruangan)
-            `)
-            .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
-            .order("tgl_waktu_pelaporan", { ascending: false });
+  try {
+    const { data: laporanList, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat:id_perawat(id_perawat, nama_perawat),
+        ruangan:id_ruangan(id_ruangan, nama_ruangan)
+      `)
+      .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
+      .order("tgl_waktu_pelaporan", { ascending: false });
 
-        if (error) {
-            throw new Error(`Gagal mengambil data laporan: ${error.message}`);
+    if (laporanError) {
+      throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
+    }
+    if (!laporanList || laporanList.length === 0) {
+      return res.status(404).json({ message: "Tidak ada laporan untuk Verifikator" });
+    }
+
+    const laporanWithOverride = await Promise.all(
+      laporanList.map(async (laporan) => {
+        // --- Default dari laporan
+        let override = {
+          kategori: laporan.kategori || "-",
+          grading: laporan.grading || "-",
+          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+        };
+
+        // --- Ambil history aksi terbaru untuk kepala_ruangan & verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const latestKepala = allHistoryAksi.find((a) => a.users?.role === "kepala_ruangan");
+          const latestVerif = allHistoryAksi.find((a) => a.users?.role === "verifikator");
+
+          if (latestKepala) {
+            override.kategori = latestKepala.kategori || override.kategori;
+            override.grading = latestKepala.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestKepala.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+          if (latestVerif) {
+            override.kategori = latestVerif.kategori || override.kategori;
+            override.grading = latestVerif.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestVerif.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
         }
 
-        const laporanWithOverride = data.map((laporan) => {
-            const override = { ...laporan };
+        // --- Ambil catatan terbaru untuk 3 role ---
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "chief_nursing", "verifikator"])
+          .order("created_at", { ascending: false });
 
-            if (laporan.grading_verifikator) {
-                override.grading = laporan.grading_verifikator;
-            } else if (laporan.grading_kepala_ruangan) {
-                override.grading = laporan.grading_kepala_ruangan;
-            }
+        const latestCatatanKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestCatatanChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
+        const latestCatatanVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
 
-            if (laporan.kategori_verifikator) {
-                override.kategori = laporan.kategori_verifikator;
-            } else if (laporan.kategori_kepala_ruangan) {
-                override.kategori = laporan.kategori_kepala_ruangan;
-            }
+        return {
+          ...laporan,
+          kategori: override.kategori || "-",
+          grading: override.grading || "-",
+          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+          catatan_verifikator: latestCatatanVerif?.catatan || "-"
+        };
+      })
+    );
 
-            if (laporan.rekomendasi_tindakan_verifikator) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_verifikator;
-            } else if (laporan.rekomendasi_tindakan_kepala_ruangan) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_kepala_ruangan;
-            }
-
-            return override;
-        });
-
-
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data: laporanWithOverride
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: laporanWithOverride
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 export async function getAllLaporanForAdmin(req, res) {
-    try {
-        // 🔹 Ambil laporan + join ke perawat & ruangan
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat(nama_perawat),
-                ruangan(nama_ruangan)
-            `)
-            .order("tgl_waktu_pelaporan", { ascending: false });
+  try {
+    // 🔹 Ambil laporan + join ke perawat & ruangan
+    const { data: laporanList, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat(nama_perawat),
+        ruangan(nama_ruangan)
+      `)
+      .order("tgl_waktu_pelaporan", { ascending: false });
 
-        if (error) throw new Error(`Gagal mengambil data laporan: ${error.message}`);
-        if (!data || data.length === 0) {
-            return res.status(404).json({ message: "Tidak ada laporan tersedia" });
+    if (laporanError) throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
+    if (!laporanList || laporanList.length === 0) {
+      return res.status(404).json({ message: "Tidak ada laporan tersedia" });
+    }
+
+    const laporanWithOverride = await Promise.all(
+      laporanList.map(async (laporan) => {
+        // --- Default dari laporan
+        let override = {
+          kategori: laporan.kategori || "-",
+          grading: laporan.grading || "-",
+          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+        };
+
+        // --- Ambil history aksi terbaru untuk kepala_ruangan & verifikator
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const latestKepala = allHistoryAksi.find((a) => a.users?.role === "kepala_ruangan");
+          const latestVerif = allHistoryAksi.find((a) => a.users?.role === "verifikator");
+
+          if (latestKepala) {
+            override.kategori = latestKepala.kategori || override.kategori;
+            override.grading = latestKepala.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestKepala.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+          if (latestVerif) {
+            override.kategori = latestVerif.kategori || override.kategori;
+            override.grading = latestVerif.grading || override.grading;
+            override.rekomendasi_tindakan =
+              latestVerif.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
         }
 
-        const laporanWithOverride = data.map((laporan) => {
-            const override = { ...laporan };
+        // --- Ambil catatan terbaru untuk 3 role
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "chief_nursing", "verifikator"])
+          .order("created_at", { ascending: false });
 
-            if (laporan.grading_verifikator) {
-                override.grading = laporan.grading_verifikator;
-            } else if (laporan.grading_kepala_ruangan) {
-                override.grading = laporan.grading_kepala_ruangan;
-            }
+        const latestCatatanKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestCatatanChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
+        const latestCatatanVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
 
-            if (laporan.kategori_verifikator) {
-                override.kategori = laporan.kategori_verifikator;
-            } else if (laporan.kategori_kepala_ruangan) {
-                override.kategori = laporan.kategori_kepala_ruangan;
-            }
+        return {
+          ...laporan,
+          kategori: override.kategori || "-",
+          grading: override.grading || "-",
+          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+          catatan_verifikator: latestCatatanVerif?.catatan || "-"
+        };
+      })
+    );
 
-            if (laporan.rekomendasi_tindakan_verifikator) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_verifikator;
-            } else if (laporan.rekomendasi_tindakan_kepala_ruangan) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_kepala_ruangan;
-            }
-
-            return override;
-        });
-
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data: laporanWithOverride
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: laporanWithOverride
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
-export async function getLaporanByIdPerawat(req, res) {
-    try {
-        const { id_perawat } = req.params;
-
-        if (!id_perawat) {
-            return res.status(400).json({ message: "ID Perawat wajib diisi" });
-        }
-
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat(nama_perawat, id_ruangan),
-                ruangan(nama_ruangan)
-            `)
-            .eq("id_perawat", id_perawat)
-            .order("tgl_waktu_pelaporan", { ascending: false });
-
-        if (error) throw new Error(`Gagal mengambil data laporan: ${error.message}`);
-        if (!data || data.length === 0) {
-            return res.status(404).json({ message: "Tidak ada laporan untuk perawat ini" });
-        }
-
-        const laporanWithOverride = data.map((laporan) => {
-            const override = { ...laporan };
-
-            if (laporan.grading_verifikator) {
-                override.grading = laporan.grading_verifikator;
-            } else if (laporan.grading_kepala_ruangan) {
-                override.grading = laporan.grading_kepala_ruangan;
-            }
-
-            if (laporan.kategori_verifikator) {
-                override.kategori = laporan.kategori_verifikator;
-            } else if (laporan.kategori_kepala_ruangan) {
-                override.kategori = laporan.kategori_kepala_ruangan;
-            }
-
-            if (laporan.rekomendasi_tindakan_verifikator) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_verifikator;
-            } else if (laporan.rekomendasi_tindakan_kepala_ruangan) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_kepala_ruangan;
-            }
-
-            return override;
-        });
-
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data: laporanWithOverride,
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export async function getLaporanForPerawat(req, res) {
+  try {
+    const { id_perawat } = req.params;
+    if (!id_perawat) {
+      return res.status(400).json({ message: "ID Perawat wajib diisi" });
     }
+
+    // Ambil semua laporan berdasarkan perawat
+    const { data: laporanList, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat(nama_perawat, id_ruangan),
+        ruangan(nama_ruangan)
+      `)
+      .eq("id_perawat", id_perawat)
+      .order("tgl_waktu_pelaporan", { ascending: false });
+
+    if (laporanError) throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
+    if (!laporanList || laporanList.length === 0) {
+      return res.status(404).json({ message: "Tidak ada laporan untuk perawat ini" });
+    }
+
+    // Proses setiap laporan
+    const laporanWithOverride = await Promise.all(
+      laporanList.map(async (laporan) => {
+        // Default override dari laporan (kalau null -> "-")
+        let override = {
+          kategori: laporan.kategori || "-",
+          grading: laporan.grading || "-",
+          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+        };
+
+        // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const latest = allHistoryAksi[0]; // 🔥 ambil yang terbaru
+          override.kategori = latest.kategori || override.kategori;
+          override.grading = latest.grading || override.grading;
+          override.rekomendasi_tindakan =
+            latest.rekomendasi_tindakan || override.rekomendasi_tindakan;
+        }
+
+        // --- Ambil history catatan terbaru per role ---
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .order("created_at", { ascending: false });
+
+        const latestKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
+        const latestVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
+
+        return {
+          ...laporan,
+          kategori: override.kategori || "-",
+          grading: override.grading || "-",
+          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          catatan_kepala_ruangan: latestKepala?.catatan || "-",
+          catatan_chief_nursing: latestChief?.catatan || "-",
+          catatan_verifikator: latestVerif?.catatan || "-"
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: laporanWithOverride
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
-export async function getLaporanByIdRuangan(req, res) {
-    try {
-        const { id_ruangan } = req.params;
-        if (!id_ruangan) {
-            return res.status(400).json({ message: "ID Ruangan wajib diisi" });
-        }
-
-        const { data, error } = await supabase
-            .from("laporan")
-            .select(`
-                *,
-                perawat(nama_perawat),
-                ruangan(nama_ruangan)
-            `)
-            .eq("id_ruangan", id_ruangan)
-            .order("tgl_waktu_pelaporan", { ascending: false });
-
-        if (error) throw new Error(`Gagal mengambil data laporan: ${error.message}`);
-        if (!data || data.length === 0) {
-            return res.status(404).json({ message: "Tidak ada laporan untuk ruangan ini" });
-        }
-
-        const laporanWithOverride = data.map((laporan) => {
-            const override = { ...laporan };
-
-            if (laporan.grading_verifikator) {
-                override.grading = laporan.grading_verifikator;
-            } else if (laporan.grading_kepala_ruangan) {
-                override.grading = laporan.grading_kepala_ruangan;
-            }
-
-            if (laporan.kategori_verifikator) {
-                override.kategori = laporan.kategori_verifikator;
-            } else if (laporan.kategori_kepala_ruangan) {
-                override.kategori = laporan.kategori_kepala_ruangan;
-            }
-
-            if (laporan.rekomendasi_tindakan_verifikator) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_verifikator;
-            } else if (laporan.rekomendasi_tindakan_kepala_ruangan) {
-                override.rekomendasi_tindakan = laporan.rekomendasi_tindakan_kepala_ruangan;
-            }
-
-            return override;
-        });
-
-        return res.status(200).json({
-            message: "Data laporan berhasil diambil.",
-            data: laporanWithOverride
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export async function getLaporanForKepalaRuangan(req, res) {
+  try {
+    const { id_ruangan } = req.params;
+    if (!id_ruangan) {
+      return res.status(400).json({ message: "ID Ruangan wajib diisi" });
     }
+
+    // Ambil semua laporan berdasarkan ruangan
+    const { data: laporanList, error: laporanError } = await supabase
+      .from("laporan")
+      .select(`
+        *,
+        perawat(nama_perawat),
+        ruangan(nama_ruangan)
+      `)
+      .eq("id_ruangan", id_ruangan)
+      .order("tgl_waktu_pelaporan", { ascending: false });
+
+    if (laporanError) throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
+    if (!laporanList || laporanList.length === 0) {
+      return res.status(404).json({ message: "Tidak ada laporan untuk ruangan ini" });
+    }
+
+    // Proses setiap laporan
+    const laporanWithOverride = await Promise.all(
+      laporanList.map(async (laporan) => {
+        // Default override dari laporan
+        let override = {
+          kategori: laporan.kategori || "-",
+          grading: laporan.grading || "-",
+          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+        };
+
+        // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const latest = allHistoryAksi[0]; // 🔥 ambil yang terbaru
+          override.kategori = latest.kategori || override.kategori;
+          override.grading = latest.grading || override.grading;
+          override.rekomendasi_tindakan =
+            latest.rekomendasi_tindakan || override.rekomendasi_tindakan;
+        }
+
+        // --- Ambil history catatan terbaru per role ---
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .order("created_at", { ascending: false });
+
+        const latestKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
+        const latestVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
+
+        return {
+          ...laporan,
+          kategori: override.kategori || "-",
+          grading: override.grading || "-",
+          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          catatan_kepala_ruangan: latestKepala?.catatan || "-",
+          catatan_chief_nursing: latestChief?.catatan || "-",
+          catatan_verifikator: latestVerif?.catatan || "-"
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: "Data laporan berhasil diambil.",
+      data: laporanWithOverride
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 
 export async function cleanLaporanUsingLLM(req, res) {

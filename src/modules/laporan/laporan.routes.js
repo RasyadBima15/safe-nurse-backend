@@ -2,9 +2,9 @@ import { Router } from 'express';
 import { 
     cleanLaporanUsingLLM, 
     generateLaporan, 
-    getLaporanByIdPerawat, 
+    getLaporanForPerawat, 
     getAllLaporanForVerifikator, 
-    getLaporanByIdRuangan, 
+    getLaporanForKepalaRuangan, 
     getAllLaporanForAdmin, 
     getLaporanForChiefNursing, 
     getLaporanByIdLaporan, 
@@ -23,8 +23,8 @@ router.post('/generate', authenticateToken, authorizeRoles("perawat"), generateL
 router.post('/clean', authenticateToken, authorizeRoles("perawat"), cleanLaporanUsingLLM);
 router.post('/validateChronology', authenticateToken, authorizeRoles("perawat"), validateChronology);
 router.get('/verifikator', authenticateToken, authorizeRoles("verifikator"), getAllLaporanForVerifikator);
-router.get('/perawat/:id_perawat', authenticateToken, authorizeRoles("perawat"), getLaporanByIdPerawat);
-router.get('/ruangan/:id_ruangan', authenticateToken, authorizeRoles("kepala_ruangan"), getLaporanByIdRuangan);
+router.get('/perawat/:id_perawat', authenticateToken, authorizeRoles("perawat"), getLaporanForPerawat);
+router.get('/kepala_ruangan/:id_ruangan', authenticateToken, authorizeRoles("kepala_ruangan"), getLaporanForKepalaRuangan);
 router.get('/chief_nursing', authenticateToken, authorizeRoles("chief_nursing"), getLaporanForChiefNursing);
 router.get('/admin', authenticateToken, authorizeRoles("super_admin"), getAllLaporanForAdmin);
 router.get('/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), getLaporanByIdLaporan);
