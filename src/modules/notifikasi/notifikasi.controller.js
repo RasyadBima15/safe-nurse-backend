@@ -1,5 +1,6 @@
 import { supabase } from '../../config/db.js';
 import { nanoid } from 'nanoid';
+import { timeAgo } from '../../utils/time.js';
 
 export async function getNotifikasi(req, res) {
   try {
@@ -16,15 +17,21 @@ export async function getNotifikasi(req, res) {
 
     if (error) throw error;
 
-    if (!data) {
+    if (!data || data.length === 0) {
       return res.status(404).json({ message: "Notifikasi tidak ditemukan" });
     }
 
-    const notifikasiBaru = data.filter(n => n.status === "belum_dibaca");
-    const notifikasiLama = data.filter(n => n.status === "sudah_dibaca");
+    // Tambahkan waktu relatif
+    const formatted = data.map((n) => ({
+      ...n,
+      waktu: timeAgo(n.created_at),
+    }));
+
+    const notifikasiBaru = formatted.filter((n) => n.status === "belum_dibaca");
+    const notifikasiLama = formatted.filter((n) => n.status === "sudah_dibaca");
 
     if (notifikasiBaru.length > 0) {
-      const ids = notifikasiBaru.map(n => n.id_notifikasi);
+      const ids = notifikasiBaru.map((n) => n.id_notifikasi);
       const { error: updateError } = await supabase
         .from("notifikasi")
         .update({ status: "sudah_dibaca" })
@@ -55,11 +62,22 @@ export async function getNewNotifikasi(req, res) {
       .eq("id_user", id_user)
       .eq("status", "belum_dibaca")
       .order("created_at", { ascending: false });
+
     if (error) throw error;
-    if (!data) {
+    if (!data || data.length === 0) {
       return res.status(404).json({ message: "Notifikasi tidak ditemukan" });
     }
-    res.json(data);
+
+    // ubah created_at ke format waktu relatif
+    const formatted = data.map((n) => ({
+      ...n,
+      waktu: timeAgo(n.created_at),
+    }));
+
+    res.json({
+      message: "Data notifikasi berhasil diambil.",
+      data: formatted
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
