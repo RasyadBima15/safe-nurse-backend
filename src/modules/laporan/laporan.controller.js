@@ -358,7 +358,7 @@ export async function validateChronology(req, res) {
     }
 }
 
-export async function generateLaporan(req, res) {
+export async function generateLaporan(req, res) { 
     try {
         const body = req.body;
 
@@ -381,7 +381,10 @@ export async function generateLaporan(req, res) {
 
         const { data: ruangan, error: ruanganError } = await supabase
             .from("ruangan")
-            .select("id_ruangan")
+            .select(`
+                id_ruangan,
+                kepala_ruangan(id_user, nama_kepala_ruangan)
+            `)
             .eq("id_ruangan", body.id_ruangan)
             .maybeSingle();
 
@@ -397,18 +400,16 @@ export async function generateLaporan(req, res) {
 
         const { data: laporan, error: insertError } = await supabase
             .from("laporan")
-            .insert([
-                {
-                    kode_laporan,
-                    ...body,
-                    skor_dampak,
-                    skor_probabilitas,
-                    skor_grading,
-                    grading,
-                    rekomendasi_tindakan,
-                    status: "diteruskan ke validator",
-                },
-            ])
+            .insert([{
+                kode_laporan,
+                ...body,
+                skor_dampak,
+                skor_probabilitas,
+                skor_grading,
+                grading,
+                rekomendasi_tindakan,
+                status: "diteruskan ke validator",
+            }])
             .select()
             .single();
 
@@ -416,22 +417,59 @@ export async function generateLaporan(req, res) {
             return res.status(500).json({ error: insertError.message });
         }
 
-        const { error: notifError } = await supabase.from("notifikasi").insert([
-            {
+        // 🔔 Ambil semua user dengan role chief_nursing & verifikator
+        const { data: usersData, error: usersError } = await supabase
+            .from("users")
+            .select("id_user, role");
+
+        if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
+
+        let notifikasi = [];
+
+        // Notif ke perawat
+        notifikasi.push({
+            id_notifikasi: nanoid(),
+            id_user: perawat.id_user,
+            message: `Laporan dengan kode laporan ${kode_laporan} sudah diterima dan sedang ditindak lanjuti oleh validator`,
+        });
+
+        console.log(ruangan?.kepala_ruangan[0]?.id_user)
+        console.log(ruangan.kepala_ruangan[0].id_user)
+
+        // Notif ke kepala ruangan (hanya 1 orang dari data ruangan)
+        if (ruangan?.kepala_ruangan[0]?.id_user) {
+            notifikasi.push({
                 id_notifikasi: nanoid(),
-                id_user: perawat.id_user,
-                message: `Laporan dengan kode laporan ${kode_laporan} sudah diterima dan sedang ditindak lanjuti oleh validator`,
-            },
-        ]);
+                id_user: ruangan.kepala_ruangan[0].id_user,
+                message: `Ada laporan baru dengan kode ${kode_laporan} dari perawat di ruangan Anda.`,
+            });
+        }
+
+        // Notif ke semua Chief Nursing & Verifikator
+        usersData
+            .filter((u) => ["chief_nursing", "verifikator"].includes(u.role))
+            .forEach((u) => {
+                notifikasi.push({
+                    id_notifikasi: nanoid(),
+                    id_user: u.id_user,
+                    message: `Ada laporan baru dengan kode ${kode_laporan}.`,
+                });
+            });
+
+        // Simpan semua notifikasi
+        const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
 
         if (notifError) {
             return res.status(500).json({ error: notifError.message });
         }
 
+        //tambahkan notifikasi WA ke kepala ruangan
+
         return res.status(200).json({
-            message: "Laporan berhasil dibuat",
+            message: "Laporan berhasil dibuat & notifikasi terkirim",
             data: laporan,
         });
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -477,23 +515,6 @@ export async function tambahCatatan(req, res) {
     if (laporanError) throw new Error(`Gagal cek laporan: ${laporanError.message}`);
     if (!laporan) return res.status(404).json({ message: "Laporan tidak ditemukan" });
 
-    if (
-      role === "chief_nursing" &&
-      ["laporan ditolak validator", "diteruskan ke validator"].includes(
-        laporan.status
-      )
-    ) {
-      return res.status(400).json({
-        message: "Status laporan tidak valid untuk menambah catatan pada chief_nursing",
-      });
-    }
-
-    if (role === "verifikator" && (laporan.status !== "diteruskan ke verifikator" || laporan.status !== "laporan disetujui verifikator")) {
-      return res.status(400).json({
-        message: "Status laporan tidak valid untuk disetujui oleh verifikator",
-      });
-    }
-
     const catatanInsert = {
       id_catatan: nanoid(),
       kode_laporan,
@@ -520,8 +541,7 @@ export async function tambahCatatan(req, res) {
         message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
     });
 
-    if (laporan.status === "diteruskan ke verifikator") {
-        const { data: usersData, error: usersError } = await supabase
+    const { data: usersData, error: usersError } = await supabase
         .from("users")
         .select("id_user, role");
 
@@ -535,8 +555,7 @@ export async function tambahCatatan(req, res) {
             id_user: u.id_user,
             message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
             });
-        });
-    }
+    });
     } else if (role === "verifikator" || role === "chief_nursing") {
     // verifikator & chief nursing → broadcast ke semua pihak
     const { data: usersData, error: usersError } = await supabase
@@ -645,7 +664,7 @@ export async function rejectLaporan(req, res) {
       notifikasi.push({
         id_notifikasi: nanoid(),
         id_user: laporan.perawat.id_user,
-        message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan. Silakan periksa kembali laporan Anda.`,
+        message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan.`,
       });
     }
 
@@ -656,9 +675,8 @@ export async function rejectLaporan(req, res) {
       message: `Anda berhasil menolak laporan dengan kode ${kode_laporan}.`,
     });
 
-    // 3. Jika status sebelumnya = "diteruskan ke verifikator" → kirim ke semua chief nursing & verifikator
-    if (laporan.status === "diteruskan ke verifikator") {
-      const { data: usersData, error: usersError } = await supabase
+    // ke chief nursing dan verifikator
+    const { data: usersData, error: usersError } = await supabase
         .from("users")
         .select("id_user, role");
 
@@ -673,7 +691,6 @@ export async function rejectLaporan(req, res) {
             message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan.`,
           });
         });
-    }
 
     // Simpan semua notifikasi
     if (notifikasi.length > 0) {
@@ -689,7 +706,6 @@ export async function rejectLaporan(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
 
 export async function approveLaporan(req, res) {
   try {
@@ -827,6 +843,8 @@ export async function approveLaporan(req, res) {
             message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
         });
 
+        //kirimkan notifikasi ke WA verifikator dan chief nursing
+
     } else if (role === "verifikator") {
         const { data: chiefNursingList, error: chiefNursingError } = await supabase
             .from("users")
@@ -907,16 +925,17 @@ export async function approveLaporan(req, res) {
             id_user,
             message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
         });
+
+        //kirimkan notifikasi ke WA verifikator
     }
 
     if (notifikasi.length > 0) {
-    const { error: notifError } = await supabase
-        .from("notifikasi")
-        .insert(notifikasi);
+        const { error: notifError } = await supabase
+            .from("notifikasi")
+            .insert(notifikasi);
 
-    if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
+        if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
     }
-
 
     return res.status(200).json({
       message: "Laporan berhasil di-approve"
@@ -944,7 +963,7 @@ export async function revisiLaporan(req, res) {
             });
         }
 
-        const { data: laporanData, error: laporanError } = await supabase
+    const { data: laporanData, error: laporanError } = await supabase
       .from("laporan")
       .select(`
         *,
@@ -1074,6 +1093,8 @@ export async function revisiLaporan(req, res) {
         message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
     });
 
+    //kirimkan notifikasi WA ke verifikator dan chief nursing
+
     } else if (role === "verifikator") {
         const { data: chiefNursingList, error: chiefNursingError } = await supabase
             .from("users")
@@ -1154,6 +1175,8 @@ export async function revisiLaporan(req, res) {
             id_user,
             message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
         });
+
+        //kirimkan notifikasi WA ke verifikator
     }
 
     if (notifikasi.length > 0) {
