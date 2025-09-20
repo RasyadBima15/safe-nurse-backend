@@ -6,6 +6,6 @@ const router = Router();
 
 router.post('/', sendTokenThroughEmail);
 router.post('/reset_password', resetPassword);
-router.post('/change_password', authenticateToken, authenticateToken("super_admin", "perawat", "kepala_ruangan", "chief_nursing", "verifikator"), changePassword);
+router.post('/change_password', authenticateToken, authorizeRoles("super_admin", "perawat", "kepala_ruangan", "chief_nursing", "verifikator"), changePassword);
 
 export default router;
