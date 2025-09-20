@@ -11,6 +11,30 @@ export async function getAdmin(req, res) {
   }
 }
 
+export async function getAdminById(req, res) {
+  try {
+    const { id_user } = req.params;
+
+    if (!id_user) {
+      return res.status(400).json({ error: "Id user wajib diisi" });
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select(`
+        email
+        `)
+      .eq("id_user", id_user)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function updateAdmin(req, res) {
   try {
     const { email } = req.body;

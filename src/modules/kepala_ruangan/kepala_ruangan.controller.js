@@ -11,6 +11,32 @@ export async function getKepalaRuangan(req, res) {
   }
 }
 
+export async function getKepalaRuanganById(req, res) {
+  try {
+    const { id_ruangan } = req.params;
+
+    if (!id_ruangan) {
+      return res.status(400).json({ error: "Id kepala ruangan wajib diisi" });
+    }
+
+    const { data, error } = await supabase
+      .from("kepala_ruangan")
+      .select(`
+        *,
+        ruangan(nama_ruangan)
+        `)
+      .eq("id_ruangan", id_ruangan)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+
 export async function updateKepalaRuangan(req, res) {
   try {
     const { nama_kepala_ruangan, jabatan, no_telp } = req.body;

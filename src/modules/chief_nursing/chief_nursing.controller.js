@@ -11,6 +11,29 @@ export async function getChiefNursing(req, res) {
   }
 }
 
+export async function getChiefNursingById(req, res) {
+  try {
+    const { id_chief_nursing } = req.params;
+
+    if (!id_chief_nursing) {
+      return res.status(400).json({ error: "Id chief nursing wajib diisi" });
+    }
+
+    const { data, error } = await supabase
+      .from("chief_nursing")
+      .select(`
+        *
+        `)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function updateChiefNursing(req, res) {
   try {
     const { nama_chief_nursing, jabatan, no_telp } = req.body;

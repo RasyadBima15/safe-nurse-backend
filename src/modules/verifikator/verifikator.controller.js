@@ -11,6 +11,29 @@ export async function getVerifikator(req, res) {
   }
 }
 
+export async function getVerifikatorById(req, res) {
+  try {
+    const { id_verifikator } = req.params;
+
+    if (!id_verifikator) {
+      return res.status(400).json({ error: "Id verifikator wajib diisi" });
+    }
+
+    const { data, error } = await supabase
+      .from("verifikator")
+      .select(`
+        *
+        `)
+      .single();
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function updateVerifikator(req, res) {
   try {
     const { nama_verifikator, jabatan, unit_kerja, no_telp } = req.body;
