@@ -1,4 +1,4 @@
-function timeAgo(dateString) {
+export function timeAgo(dateString) {
   const now = new Date();
   const created = new Date(dateString);
   const diff = Math.floor((now - created) / 1000); // selisih dalam detik
@@ -23,4 +23,4 @@ function timeAgo(dateString) {
   }
 }
 
-export default { timeAgo }
+// export default { timeAgo }

@@ -1,4 +1,4 @@
-function generateKodeLaporan() {
+export function generateKodeLaporan() {
   const today = new Date();
   const ymd = today.toISOString().slice(0, 10).replace(/-/g, "");
   const sequence = Math.floor(Math.random() * 9999)
@@ -7,4 +7,4 @@ function generateKodeLaporan() {
   return `LAP-${ymd}-${sequence}`;
 }
 
-export default { generateKodeLaporan };
+// export default { generateKodeLaporan };

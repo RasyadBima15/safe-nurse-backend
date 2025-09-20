@@ -1,4 +1,4 @@
-const requiredFieldsForAI = [
+export const requiredFieldsForAI = [
   "nama_pasien",
   "no_rm",
   "umur",
@@ -15,7 +15,7 @@ const requiredFieldsForAI = [
   "probabilitas",
 ];
 
-const requiredFieldsForConfirmation = [
+export const requiredFieldsForConfirmation = [
   "nama_pasien",
   "no_rm",
   "umur",
@@ -33,4 +33,4 @@ const requiredFieldsForConfirmation = [
   "kategori"
 ];
 
-export default { requiredFieldsForConfirmation, requiredFieldsForAI };
+// export default { requiredFieldsForConfirmation, requiredFieldsForAI };

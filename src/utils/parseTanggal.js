@@ -1,4 +1,4 @@
-function parseTanggal(tglString) {
+export function parseTanggal(tglString) {
   const [tanggal, waktu] = tglString.split(" ");
   const [day, month, year] = tanggal.split("/");
   const [hour, minute] = waktu.split(".");
@@ -11,4 +11,4 @@ function parseTanggalDateOnly(input) {
   return `${year}-${month}-${day}`; // → 2025-09-20
 }
 
-export default {parseTanggal, parseTanggalDateOnly}
+// export default {parseTanggal, parseTanggalDateOnly}

@@ -1,4 +1,4 @@
-const dampakScores = {
+export const dampakScores = {
   "tidak ada cidera": 1,
   "cidera ringan": 2, 
   "cidera sedang": 3,
@@ -6,7 +6,7 @@ const dampakScores = {
   "kematian": 5,   
 };
 
-const probabilitasScores = {
+export const probabilitasScores = {
   "5 tahun sekali": 1,      
   "2–5 tahun sekali": 2,    
   "1–2 tahun sekali": 3,      
@@ -14,7 +14,7 @@ const probabilitasScores = {
   "Setiap bulan/minggu": 5,
 };
 
-function gradingClassification(skor) {
+export function gradingClassification(skor) {
   if (skor >= 1 && skor <= 4) {
     return "biru";
   } else if (skor >= 5 && skor <= 9) {
@@ -28,7 +28,7 @@ function gradingClassification(skor) {
   }
 }
 
-function rekomendasiTindakan(grading) {
+export function rekomendasiTindakan(grading) {
   switch (grading) {
     case "merah":
       return "Dilakukan RCA paling lama 45 hari, membutuhkan tindakan segera, perhatian sampai direktur.";
@@ -41,7 +41,7 @@ function rekomendasiTindakan(grading) {
   }
 }
 
-function hitungSkor(dampak, probabilitas) {
+export function hitungSkor(dampak, probabilitas) {
   const skor_dampak = dampakScores[dampak];
   const skor_probabilitas = probabilitasScores[probabilitas];
 
@@ -52,4 +52,4 @@ function hitungSkor(dampak, probabilitas) {
   return { skor_dampak, skor_probabilitas, skor_grading, grading, rekomendasi_tindakan };
 }
 
-export default { hitungSkor };
+// export default { hitungSkor };

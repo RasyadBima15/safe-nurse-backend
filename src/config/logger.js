@@ -1,6 +1,6 @@
 import { createLogger, transports, format } from 'winston';
 
-const logger = createLogger({
+export const logger = createLogger({
   level: 'info',
   format: format.combine(format.timestamp(), format.json()),
   transports: [
@@ -9,4 +9,4 @@ const logger = createLogger({
   ]
 });
 
-export default logger;
+// export default logger;

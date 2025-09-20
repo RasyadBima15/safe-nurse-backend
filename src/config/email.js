@@ -1,6 +1,6 @@
 import { createTransport } from 'nodemailer';
 
-const transporter = createTransport({
+export const transporter = createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
@@ -8,7 +8,7 @@ const transporter = createTransport({
   }
 });
 
-const emailTemplates = {
+export const emailTemplates = {
   passwordReset: (resetLink) => ({
     subject: 'Reset Password - SAFE-Nurse',
     html: `
@@ -56,4 +56,4 @@ const emailTemplates = {
   })
 };
 
-export default { transporter, emailTemplates };
+// export default { transporter, emailTemplates };

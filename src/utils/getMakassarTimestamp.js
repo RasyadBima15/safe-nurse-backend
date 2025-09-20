@@ -1,4 +1,4 @@
-function getMakassarTimestamp(makassarTime) {
+export function getMakassarTimestamp(makassarTime) {
   const year = makassarTime.getFullYear();
   const month = String(makassarTime.getMonth() + 1).padStart(2, "0");
   const day = String(makassarTime.getDate()).padStart(2, "0");
@@ -11,4 +11,4 @@ function getMakassarTimestamp(makassarTime) {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}+08`;
 }
 
-export default { getMakassarTimestamp };
+// export default { getMakassarTimestamp };
