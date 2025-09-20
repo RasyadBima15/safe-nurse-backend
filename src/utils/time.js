@@ -23,4 +23,4 @@ function timeAgo(dateString) {
   }
 }
 
-module.exports = { timeAgo }
+export default { timeAgo }

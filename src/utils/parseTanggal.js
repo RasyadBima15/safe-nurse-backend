@@ -11,4 +11,4 @@ function parseTanggalDateOnly(input) {
   return `${year}-${month}-${day}`; // → 2025-09-20
 }
 
-module.exports = {parseTanggal, parseTanggalDateOnly}
+export default {parseTanggal, parseTanggalDateOnly}

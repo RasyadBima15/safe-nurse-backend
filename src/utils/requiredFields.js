@@ -33,4 +33,4 @@ const requiredFieldsForConfirmation = [
   "kategori"
 ];
 
-module.exports = { requiredFieldsForConfirmation, requiredFieldsForAI };
+export default { requiredFieldsForConfirmation, requiredFieldsForAI };

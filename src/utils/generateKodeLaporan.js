@@ -7,4 +7,4 @@ function generateKodeLaporan() {
   return `LAP-${ymd}-${sequence}`;
 }
 
-module.exports = { generateKodeLaporan };
+export default { generateKodeLaporan };

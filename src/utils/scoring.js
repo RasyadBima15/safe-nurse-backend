@@ -52,4 +52,4 @@ function hitungSkor(dampak, probabilitas) {
   return { skor_dampak, skor_probabilitas, skor_grading, grading, rekomendasi_tindakan };
 }
 
-module.exports = { hitungSkor };
+export default { hitungSkor };

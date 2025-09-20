@@ -11,4 +11,4 @@ function getMakassarTimestamp(makassarTime) {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}+08`;
 }
 
-module.exports = { getMakassarTimestamp };
+export default { getMakassarTimestamp };
