@@ -131,7 +131,7 @@ export async function resetPassword(req, res) {
 
 export async function changePassword(req, res) {
   try {
-    const { id_user } = req.params;
+    const { id_user } = req.user;
     const { oldPassword, newPassword } = req.body;
 
     if (!id_user) {
