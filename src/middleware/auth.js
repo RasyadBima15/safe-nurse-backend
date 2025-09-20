@@ -1,6 +1,10 @@
-const jwt = require("jsonwebtoken");
+// src/middleware/auth.js (Kode yang Sudah Diperbaiki)
 
-function authenticateToken(req, res, next) {
+// UBAH BAGIAN INI: dari require menjadi import
+import jwt from "jsonwebtoken";
+
+// UBAH BAGIAN INI: tambahkan 'export' di depan fungsi
+export function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -13,13 +17,15 @@ function authenticateToken(req, res, next) {
   });
 }
 
-function authorizeRoles(...allowedRoles) {
+// UBAH BAGIAN INI: tambahkan 'export' di depan fungsi
+export function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ message: "Akses ditolak" });
     }
     next();
   };
 }
 
-module.exports = { authenticateToken, authorizeRoles };
+// HAPUS BAGIAN INI
+// module.exports = { authenticateToken, authorizeRoles };
