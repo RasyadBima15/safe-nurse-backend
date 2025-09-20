@@ -1,7 +1,9 @@
 import app from './app.js';
 
-const PORT = process.env.PORT
+// Bagian app.listen sudah benar dikomentari
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running on http://localhost:${PORT}`);
+// });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// TAMBAHKAN BARIS INI
+export default app;
