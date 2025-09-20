@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { supabase } from '../../config/db.js'
-import { logger } from '../../config/logger.js'
 import { nanoid } from 'nanoid'
 
 export async function register(req, res) {

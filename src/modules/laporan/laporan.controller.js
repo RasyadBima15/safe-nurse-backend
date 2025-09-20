@@ -1,5 +1,4 @@
 import { supabase } from '../../config/db.js';
-import logger from '../../config/logger.js'
 import { generateKodeLaporan } from '../../utils/generateKodeLaporan.js';
 import { hitungSkor } from '../../utils/scoring.js';
 import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/requiredFields.js';

@@ -1,5 +1,4 @@
 import { supabase } from '../../config/db.js';
-import logger from '../../config/logger.js'
 import { transporter, emailTemplates } from '../../config/email.js';
 import crypto from "crypto";
 import bcrypt from "bcryptjs";

@@ -1,5 +1,4 @@
 import { supabase } from '../../config/db.js';
-import logger from '../../config/logger.js'
 
 export async function getUsers(req, res) {
   try {
