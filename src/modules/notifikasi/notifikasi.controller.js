@@ -4,7 +4,7 @@ import { timeAgo } from '../../utils/time.js';
 
 export async function getNotifikasi(req, res) {
   try {
-    const { id_user } = req.params;
+    const { id_user } = req.user;
     if (!id_user) {
       return res.status(400).json({ message: "ID User wajib diisi" });
     }
@@ -51,7 +51,7 @@ export async function getNotifikasi(req, res) {
 
 export async function getNewNotifikasi(req, res) {
   try {
-    const { id_user } = req.params;
+    const { id_user } = req.user;
     if (!id_user) {
       return res.status(400).json({ message: "ID User wajib diisi" });
     }

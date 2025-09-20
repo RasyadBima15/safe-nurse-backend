@@ -4,8 +4,8 @@ import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.get('/:id_user', getNotifikasi);
-router.get('/new/:id_user', getNewNotifikasi);
+router.get('/', authenticateToken, authorizeRoles('perawat', 'kepala_ruangan', 'chief_nursing', 'verifikator'), getNotifikasi );
+router.get('/new', authenticateToken, authorizeRoles('perawat', 'kepala_ruangan', 'chief_nursing', 'verifikator'), getNewNotifikasi);
 router.post('/create', authenticateToken, authorizeRoles('super_admin'), createNotifikasi);
 
 export default router;

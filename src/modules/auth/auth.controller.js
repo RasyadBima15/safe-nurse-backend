@@ -111,13 +111,7 @@ export async function login(req, res) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { id_user: user.id_user, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    let response = { token, id_user: user.id_user };
+    let extraData = {};
 
     if (user.role === "perawat") {
       const { data: perawat } = await supabase
@@ -125,35 +119,45 @@ export async function login(req, res) {
         .select("id_perawat, id_ruangan")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...perawat, role: user.role };
+      extraData = { ...perawat };
     } else if (user.role === "kepala_ruangan") {
       const { data: kepala } = await supabase
         .from("kepala_ruangan")
         .select("id_kepala_ruangan, id_ruangan")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...kepala, role: user.role };
+      extraData = { ...kepala };
     } else if (user.role === "chief_nursing") {
-      const { data: chiefNursing } = await supabase
+      const { data: chief } = await supabase
         .from("chief_nursing")
         .select("id_chief_nursing")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...chiefNursing, role: user.role };
+      extraData = { ...chief };
     } else if (user.role === "verifikator") {
       const { data: verifikator } = await supabase
         .from("verifikator")
         .select("id_verifikator")
         .eq("id_user", user.id_user)
         .maybeSingle();
-      response = { ...response, ...verifikator, role: user.role };
-    } else if (user.role === "super_admin") {
-      response = { token, id_user: user.id_user, role: user.role };
+      extraData = { ...verifikator };
     }
 
-    return res.json(response);
+    // Buat payload JWT sesuai role
+    const payload = {
+      id_user: user.id_user,
+      role: user.role,
+      ...extraData,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    // hanya kirim token
+    return res.json({ token });
+
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 }
+
 

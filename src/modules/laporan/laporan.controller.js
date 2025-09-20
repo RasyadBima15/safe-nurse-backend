@@ -5,7 +5,8 @@ import { hitungSkor } from '../../utils/scoring.js';
 import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/requiredFields.js';
 import { callGeminiAPI, validateChronologyAPI } from '../../config/geminiAI.js';
 import { nanoid } from 'nanoid'; 
-import { sendWA } from '../../config/wa.js';
+import { sendWA } from '../../config/wa.js'
+import { parseTanggal, parseTanggalDateOnly } from '../../utils/parseTanggal.js';
 
 export async function getLaporanByIdLaporan(req, res) {
   try {
@@ -21,8 +22,11 @@ export async function getLaporanByIdLaporan(req, res) {
         ruangan:id_ruangan(nama_ruangan)
       `)
       .eq("kode_laporan", kode_laporan)
-      .single();
+      .maybeSingle();
 
+    if (!laporan) {
+      return res.status(404).json({ message: "Laporan tidak ada" });
+    }
     if (laporanError) throw new Error(laporanError.message);
 
     // 2. Ambil history aksi user ini
@@ -141,6 +145,74 @@ export async function getLaporanByIdLaporan(req, res) {
   }
 }
 
+export async function getLaporanMasuk(req, res) {
+  try {
+    const { role, id_ruangan } = req.user; // dari middleware
+
+    let query = supabase
+      .from("laporan")
+      .select(`
+        judul_insiden,
+        tgl_waktu_pelaporan,
+        perawat(nama_perawat)
+      `);
+
+    if (role === "kepala_ruangan") {
+      query = query
+        .eq("status", "diteruskan ke validator")
+        .eq("id_ruangan", id_ruangan);
+    } else if (role === "chief_nursing") {
+      query = query.eq("status", "diteruskan ke verifikator");
+    } else if (role === "verifikator") {
+      query = query.eq("status", "diteruskan ke verifikator");
+    } else {
+      return res.status(403).json({ message: "Role tidak diizinkan" });
+    }
+
+    query = query.order("tgl_waktu_pelaporan", { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return res.status(400).json({ error: error.message });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(200).json({ message: "Laporan belum ada" });
+    }
+
+    // Custom formatter: "20 September 2025, 09:32 WITA"
+    const formatter = new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Makassar",
+    });
+
+    const formattedData = data.map((lap) => {
+      if (!lap.tgl_waktu_pelaporan) return lap;
+
+      const parts = formatter.formatToParts(new Date(lap.tgl_waktu_pelaporan));
+      const tanggal = `${parts.find(p => p.type === "day").value} ${parts.find(p => p.type === "month").value} ${parts.find(p => p.type === "year").value}`;
+      const jam = `${parts.find(p => p.type === "hour").value}:${parts.find(p => p.type === "minute").value}`;
+
+      return {
+        ...lap,
+        tgl_waktu_pelaporan: `${tanggal}, ${jam} WITA`
+      };
+    });
+
+    return res.status(200).json({ data: formattedData });
+  } catch (error) {
+    console.error("Server error:", error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
 export async function getLaporanForChiefNursing(req, res) {
   try {
     const { data: laporanList, error: laporanError } = await supabase
@@ -150,7 +222,7 @@ export async function getLaporanForChiefNursing(req, res) {
         perawat:id_perawat(nama_perawat),
         ruangan:id_ruangan(nama_ruangan)
       `)
-      .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
+      // .or("status.eq.diteruskan ke verifikator, status.eq.laporan disetujui verifikator, status.eq.laporan disetujui chief nursing")
       .order("tgl_waktu_pelaporan", { ascending: false });
 
     if (laporanError) {
@@ -245,7 +317,7 @@ export async function getAllLaporanForVerifikator(req, res) {
         perawat:id_perawat(id_perawat, nama_perawat),
         ruangan:id_ruangan(id_ruangan, nama_ruangan)
       `)
-      .or("status.eq.diteruskan ke verifikator,status.eq.laporan disetujui verifikator")
+      // .or("status.eq.diteruskan ke verifikator, status.eq.laporan disetujui verifikator, status.eq.laporan disetujui chief nursing")
       .order("tgl_waktu_pelaporan", { ascending: false });
 
     if (laporanError) {
@@ -410,7 +482,7 @@ export async function getAllLaporanForAdmin(req, res) {
 
 export async function getLaporanForPerawat(req, res) {
   try {
-    const { id_perawat } = req.params;
+    const { id_perawat } = req.user;
     if (!id_perawat) {
       return res.status(400).json({ message: "ID Perawat wajib diisi" });
     }
@@ -491,7 +563,7 @@ export async function getLaporanForPerawat(req, res) {
 
 export async function getLaporanForKepalaRuangan(req, res) {
   try {
-    const { id_ruangan } = req.params;
+    const { id_ruangan } = req.user;
     if (!id_ruangan) {
       return res.status(400).json({ message: "ID Ruangan wajib diisi" });
     }
@@ -573,6 +645,7 @@ export async function getLaporanForKepalaRuangan(req, res) {
 export async function cleanLaporanUsingLLM(req, res) {
     try {
         const body = req.body;
+        const { id_perawat, id_ruangan } = req.user;
         const missingFields = requiredFieldsForAI.filter((field) => !body[field]);
         if (missingFields.length > 0) {
             return res.status(400).json({
@@ -590,7 +663,9 @@ export async function cleanLaporanUsingLLM(req, res) {
 
         const finalReport = {
             ...body,
-            ...cleanedData,
+            id_perawat,
+            id_ruangan,
+            ...cleanedData
         };
 
         res.status(200).json({
@@ -637,6 +712,7 @@ export async function validateChronology(req, res) {
 export async function generateLaporan(req, res) { 
     try {
         const body = req.body;
+        const { id_perawat, id_ruangan } = req.user;
 
         const missingFields = requiredFieldsForConfirmation.filter((field) => !body[field]);
         if (missingFields.length > 0) {
@@ -648,7 +724,7 @@ export async function generateLaporan(req, res) {
         const { data: perawat, error: perawatError } = await supabase
             .from("perawat")
             .select("id_perawat, id_user, id_ruangan")
-            .eq("id_perawat", body.id_perawat)
+            .eq("id_perawat", id_perawat)
             .maybeSingle();
 
         if (perawatError || !perawat) {
@@ -661,7 +737,7 @@ export async function generateLaporan(req, res) {
                 id_ruangan,
                 kepala_ruangan(id_user, nama_kepala_ruangan)
             `)
-            .eq("id_ruangan", body.id_ruangan)
+            .eq("id_ruangan", id_ruangan)
             .maybeSingle();
 
         if (ruanganError || !ruangan) {
@@ -674,17 +750,24 @@ export async function generateLaporan(req, res) {
             body.probabilitas
         );
 
+        const tgl_insiden = body.tgl_insiden ? parseTanggal(body.tgl_insiden) : null;
+        const tgl_msk_rs = body.tgl_msk_rs ? parseTanggalDateOnly(body.tgl_msk_rs) : null;
+
         const { data: laporan, error: insertError } = await supabase
             .from("laporan")
             .insert([{
                 kode_laporan,
                 ...body,
+                tgl_msk_rs,
+                tgl_insiden,
                 skor_dampak,
                 skor_probabilitas,
                 skor_grading,
                 grading,
                 rekomendasi_tindakan,
                 status: "diteruskan ke validator",
+                id_perawat,
+                id_ruangan
             }])
             .select()
             .single();
@@ -1018,18 +1101,17 @@ export async function approveLaporan(req, res) {
 
     if (
     role === "verifikator" &&
-    !["diteruskan ke verifikator", "laporan disetujui verifikator"].includes(laporanData.status)
+    !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
     ) {
     return res.status(400).json({
         message: "Status laporan tidak valid untuk disetujui oleh verifikator",
     });
     }
 
-
-    // 🚀 Tentukan status baru (kecuali chief_nursing)
     let newStatus = null;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator") newStatus = "laporan disetujui verifikator";
+    if (role === "chief_nursing") newStatus = "laporan disetujui chief nursing";
 
     // ✅ Update laporan (status only, kecuali chief_nursing)
     let laporanUpdate = laporanData;
@@ -1266,7 +1348,7 @@ export async function revisiLaporan(req, res) {
 
     if (
     role === "verifikator" &&
-    !["diteruskan ke verifikator", "laporan disetujui verifikator"].includes(laporanData.status)
+    !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
     ) {
     return res.status(400).json({
         message: "Status laporan tidak valid untuk direvisi oleh verifikator",
@@ -1274,10 +1356,10 @@ export async function revisiLaporan(req, res) {
     }
 
 
-    // 🚀 Tentukan status baru (kecuali chief_nursing)
     let newStatus = null;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator") newStatus = "laporan disetujui verifikator";
+    if (role === "chief_nursing") newStatus = "laporan disetujui chief nursing";
 
     // ✅ Update laporan (status only, kecuali chief_nursing)
     let laporanUpdate = laporanData;

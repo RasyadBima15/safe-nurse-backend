@@ -1,6 +1,4 @@
 const requiredFieldsForAI = [
-  "id_perawat",
-  "id_ruangan",
   "nama_pasien",
   "no_rm",
   "umur",
@@ -18,8 +16,6 @@ const requiredFieldsForAI = [
 ];
 
 const requiredFieldsForConfirmation = [
-  "id_perawat",
-  "id_ruangan",
   "nama_pasien",
   "no_rm",
   "umur",
