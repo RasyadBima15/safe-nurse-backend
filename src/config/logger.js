@@ -4,8 +4,8 @@ const logger = createLogger({
   level: 'info',
   format: format.combine(format.timestamp(), format.json()),
   transports: [
-    new transports.Console(),
-    new transports.File({ filename: 'logs/app.log' })
+    // Hanya sisakan transport Console. Ini sudah cukup untuk Vercel.
+    new transports.Console()
   ]
 });
 
