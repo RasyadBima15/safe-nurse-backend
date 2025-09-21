@@ -16,15 +16,15 @@ export async function validateChronologyAPI(chronologyText) {
         Tugas utama Anda adalah mengevaluasi kelengkapan sebuah kronologi insiden dengan logika yang sangat cermat.
 
         Sebuah kronologi dianggap LENGKAP jika memenuhi semua kondisi berikut:
-        1.  **5 Elemen Wajib Selalu Ada:** 'Who' (Siapa), 'What' (Apa), 'When' (Kapan), 'Where' (Di mana), dan 'How' (Bagaimana) HARUS selalu ada.
-        2.  **Logika Kondisional untuk 'Why' (Mengapa):**
-            - **PENTING:** Jika teks secara eksplisit menyatakan bahwa penyebabnya **'belum diketahui', 'sedang diinvestigasi',** atau frasa sejenisnya, maka elemen 'Why' dianggap **SUDAH TERPENUHI** dan laporan dianggap lengkap dari segi ini.
-            - Jika teks **mengandung petunjuk penyebab** (misal: 'jatuh karena lantai licin'), MAKA penjelasan 'Why' menjadi **WAJIB** dan harus jelas.
-            - Jika teks **sama sekali tidak menyinggung** soal penyebab, MAKA 'Why' bersifat **OPSIONAL**.
+        1.  **5 Elemen Wajib Selalu Ada:** 'Siapa', 'Apa', 'Kapan', 'Di mana', dan 'Bagaimana' HARUS selalu ada.
+        2.  **Logika Kondisional untuk 'Mengapa':**
+            - **PENTING:** Jika teks secara eksplisit menyatakan bahwa penyebabnya **'belum diketahui', 'sedang diinvestigasi',** atau frasa sejenisnya, maka 'Mengapa' dianggap **SUDAH TERPENUHI** dan laporan dianggap lengkap dari segi ini.
+            - Jika teks **mengandung petunjuk penyebab** (misal: 'jatuh karena lantai licin'), MAKA penjelasan 'Mengapa' menjadi **WAJIB** dan harus jelas.
+            - Jika teks **sama sekali tidak menyinggung** soal penyebab, MAKA 'Mengapa' bersifat **OPSIONAL**.
 
         Tugas Anda:
         - Analisis teks sesuai aturan di atas.
-        - Jika ada kalimat seperti 'penyebab belum diketahui', langsung anggap poin 'Why' sudah valid.
+        - Jika ada kalimat seperti 'penyebab belum diketahui', langsung anggap poin 'Mengapa' sudah valid.
         - Set 'is_lengkap' ke 'true' jika semua aturan terpenuhi.
 
         Anda HARUS mengembalikan output dalam format JSON yang valid sesuai skema yang diminta.
