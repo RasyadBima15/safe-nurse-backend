@@ -30,7 +30,7 @@ router.get('/kepala_ruangan', authenticateToken, authorizeRoles("kepala_ruangan"
 router.get('/chief_nursing', authenticateToken, authorizeRoles("chief_nursing"), getLaporanForChiefNursing);
 router.get('/admin', authenticateToken, authorizeRoles("super_admin"), getAllLaporanForAdmin);
 router.get('/laporanMasuk', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), getLaporanMasuk);
-router.get('/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), getLaporanByIdLaporan);
+router.get('/:kode_laporan', authenticateToken, authorizeRoles("perawat", "kepala_ruangan", "chief_nursing", "verifikator"), getLaporanByIdLaporan);
 
 router.post('/reject/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan"), rejectLaporan);
 router.post('/addCatatan/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), tambahCatatan);
