@@ -23,7 +23,8 @@ export async function getKepalaRuanganById(req, res) {
       .from("kepala_ruangan")
       .select(`
         *,
-        ruangan(nama_ruangan)
+        ruangan(nama_ruangan),
+        users(email)
         `)
       .eq("id_ruangan", id_ruangan)
       .single();
