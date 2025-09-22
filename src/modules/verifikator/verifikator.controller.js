@@ -22,7 +22,8 @@ export async function getVerifikatorById(req, res) {
     const { data, error } = await supabase
       .from("verifikator")
       .select(`
-        *
+        *,
+        users(email)
         `)
       .single();
 
