@@ -22,7 +22,8 @@ export async function getChiefNursingById(req, res) {
     const { data, error } = await supabase
       .from("chief_nursing")
       .select(`
-        *
+        *,
+        users(email)
         `)
       .single();
 
