@@ -23,8 +23,9 @@ export async function getPerawatbyIdPerawat(req, res) {
       .from("perawat")
       .select(`
         *,
-        ruangan(nama_ruangan)
-        `)
+        ruangan(nama_ruangan),
+        users(email)
+      `)
       .eq("id_perawat", id_perawat)
       .single();
 
@@ -35,7 +36,6 @@ export async function getPerawatbyIdPerawat(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
 
 export async function updatePerawat(req, res) {
   try {
