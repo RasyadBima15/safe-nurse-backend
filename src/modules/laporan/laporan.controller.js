@@ -151,6 +151,7 @@ export async function getLaporanMasuk(req, res) {
     let query = supabase
       .from("laporan")
       .select(`
+        kode_laporan,
         judul_insiden,
         tgl_waktu_pelaporan,
         perawat(nama_perawat)
