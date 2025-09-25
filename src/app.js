@@ -26,6 +26,7 @@ app.use((req, res, next) => {
 
 const allowedOrigins = [
   'https://safe-nurse-lzam.vercel.app',
+  'https://safenurse.site',
   'http://localhost:3000'
 ];
 
