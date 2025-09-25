@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
+// import helmet from 'helmet';
+// import morgan from 'morgan';
 import dotenv from 'dotenv';
 
 import authRoutes from './modules/auth/auth.routes.js';
@@ -20,19 +20,27 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"
-  ],
+  origin: (origin, callback) => {
+    const allowed = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ];
+    console.log("Request Origin:", origin);
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
 };
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
-app.use(helmet());
+// app.use(helmet());
 app.use(express.json());
-app.use(morgan('dev'));
+// app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
