@@ -115,7 +115,7 @@ export async function callGeminiAPI(body) {
     const systemPrompt = `
         Anda adalah asisten ahli untuk manajemen risiko insiden di rumah sakit. Tugas Anda ada tiga:
         1.  **Pembersihan & Standardisasi Data**: Perbaiki, rapikan, dan standarisasikan data input.
-            - Untuk field teks (khusus nama_pasien, umur, jenis_kelamin, unit_yang_melaporkan, lokasi_insiden, judul_insiden, kronologi, tindakan_awal, tindakan_oleh):
+            - Untuk field teks (khusus nama_pasien, umur, jenis_kelamin, unit_yang_melaporkan, lokasi_insiden, yang_dilaporkan, judul_insiden, kronologi, tindakan_awal, tindakan_oleh):
                 - Perbaiki kesalahan ejaan, tata bahasa, dan penggunaan kata yang kurang tepat.
                 - Hilangkan spasi berlebih dan kata tidak baku.
                 - Gunakan huruf kapital sesuai kaidah (misalnya huruf pertama nama, awal kalimat, nama unit, dsb).
@@ -144,7 +144,8 @@ export async function callGeminiAPI(body) {
         - umur: "${body.umur}"
         - jenis_kelamin: "${body.jenis_kelamin}"
         - unit_yang_melaporkan: "${body.unit_yang_melaporkan}"
-        - lokasi_insiden: "${body.lokasi_insiden}"
+        - lokasi_insiden: "${body.lokasi_insiden}",
+        - yang_dilaporkan: "${body.yang_dilaporkan}"
         - judul_insiden: "${body.judul_insiden}"
         - kronologi: "${body.kronologi}"
         - tindakan_awal: "${body.tindakan_awal}"
@@ -163,6 +164,7 @@ export async function callGeminiAPI(body) {
             },
             "unit_yang_melaporkan": { "type": "STRING" },
             "lokasi_insiden": { "type": "STRING" },
+            "yang_dilaporkan": { "type": "STRING" },
             "judul_insiden": { "type": "STRING" },
             "kronologi": { "type": "STRING" },
             "tindakan_awal": { "type": "STRING" },
@@ -179,6 +181,7 @@ export async function callGeminiAPI(body) {
             "jenis_kelamin",
             "unit_yang_melaporkan",
             "lokasi_insiden",
+            "yang_dilaporkan",
             "judul_insiden",
             "kronologi",
             "tindakan_awal",
