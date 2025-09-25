@@ -24,40 +24,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// // ✅ Konfigurasi CORS
-// const allowedOrigins = [
-//   "http://localhost:3000",
-//   "http://127.0.0.1:3000",
-//   // kalau frontend kamu deploy, tambahkan di sini:
-//   // "https://safenurse.site"
-// ];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    const allowed = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-    ];
-    console.log("🔥 Request dari origin:", origin);
-
-    // kalau no origin (misal curl, Postman), tetap izinkan
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn("⛔ Origin ditolak:", origin);
-      callback(null, false); // jangan throw Error
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-
-app.use(cors(corsOptions));
-// app.use(helmet());
+app.use(cors({
+  origin: 'https://safe-nurse-lzam.vercel.app',
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true // jika butuh cookies/auth
+}));
 app.use(express.json());
-// app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
