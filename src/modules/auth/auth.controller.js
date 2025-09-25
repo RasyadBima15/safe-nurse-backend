@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid'
 
 export async function register(req, res) {
   try {
-    const { email, password, role, id_ruangan, nama } = req.body;
+    const { email, password, role, id_ruangan, nama, no_telp } = req.body;
 
     if (!email || !password || !role || !nama) {
       return res.status(400).json({ message: "Email, password, role, dan nama wajib diisi" });
@@ -19,13 +19,16 @@ export async function register(req, res) {
       return res.status(400).json({ message: "id_ruangan wajib diisi untuk role " + role });
     }
 
+    if (['kepala_ruangan', 'chief_nursing', 'verifikator'].includes(role) && !no_telp) {
+      return res.status(400).json({ message: "no_telp wajib diisi untuk role " + role });
+    }
+
     const id_user = nanoid();
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const { error: userError } = await supabase
       .from("users")
       .insert([{ id_user, email, password_hash: hashedPassword, role }]);
-
     if (userError) throw userError;
 
     if (role === "perawat") {
@@ -45,7 +48,8 @@ export async function register(req, res) {
         id_kepala_ruangan,
         id_user,
         id_ruangan,
-        nama_kepala_ruangan: nama
+        nama_kepala_ruangan: nama,
+        no_telp
       }]);
       if (error) throw error;
     }
@@ -55,7 +59,8 @@ export async function register(req, res) {
       const { error } = await supabase.from("chief_nursing").insert([{
         id_chief_nursing,
         id_user,
-        nama_chief_nursing: nama
+        nama_chief_nursing: nama,
+        no_telp
       }]);
       if (error) throw error;
     }
@@ -65,7 +70,8 @@ export async function register(req, res) {
       const { error } = await supabase.from("verifikator").insert([{
         id_verifikator,
         id_user,
-        nama_verifikator: nama
+        nama_verifikator: nama,
+        no_telp
       }]);
       if (error) throw error;
     }
