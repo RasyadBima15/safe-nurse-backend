@@ -1,6 +1,20 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+import express from 'express';
+import cors from 'cors';
+// import helmet from 'helmet';
+// import morgan from 'morgan';
+import dotenv from 'dotenv';
+
+import authRoutes from './modules/auth/auth.routes.js';
+import userRoutes from './modules/users/user.routes.js';
+import ruanganRoutes from './modules/ruangan/ruangan.routes.js';
+import perawatRoutes from './modules/perawat/perawat.routes.js';
+import kepalaRuanganRoutes from './modules/kepala_ruangan/kepala_ruangan.routes.js';
+import verifikatorRoutes from './modules/verifikator/verifikator.routes.js';
+import ipcnRoutes from './modules/chief_nursing/chief_nursing.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
+import forgotPasswordRoutes from './modules/forgot-password/forgot_password.routes.js';
+import laporanRoutes from './modules/laporan/laporan.routes.js';
+import notifikasiRoutes from './modules/notifikasi/notifikasi.routes.js';
 
 dotenv.config();
 const app = express();
@@ -35,9 +49,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Middleware lain
+// app.use(helmet());
 app.use(express.json());
+// app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
