@@ -5,6 +5,11 @@ import dotenv from "dotenv";
 dotenv.config();
 const app = express();
 
+app.use((req, res, next) => {
+  console.log("👉 Request masuk:", req.method, req.path, "Origin:", req.headers.origin);
+  next();
+});
+
 // ✅ Konfigurasi CORS
 const allowedOrigins = [
   "http://localhost:3000",
