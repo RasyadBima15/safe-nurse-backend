@@ -24,31 +24,35 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Konfigurasi CORS
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  // kalau frontend kamu deploy, tambahkan di sini:
-  // "https://safenurse.site"
-];
+// // ✅ Konfigurasi CORS
+// const allowedOrigins = [
+//   "http://localhost:3000",
+//   "http://127.0.0.1:3000",
+//   // kalau frontend kamu deploy, tambahkan di sini:
+//   // "https://safenurse.site"
+// ];
 
 const corsOptions = {
   origin: function (origin, callback) {
     const allowed = [
       "http://localhost:3000",
-      "http://127.0.0.1:3000"
+      "http://127.0.0.1:3000",
     ];
     console.log("🔥 Request dari origin:", origin);
+
+    // kalau no origin (misal curl, Postman), tetap izinkan
     if (!origin || allowed.includes(origin)) {
-      callback(null, true); // kalau origin undefined / ada di allowed → izinkan
+      callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      console.warn("⛔ Origin ditolak:", origin);
+      callback(null, false); // jangan throw Error
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
 };
+
 
 app.use(cors(corsOptions));
 // app.use(helmet());
