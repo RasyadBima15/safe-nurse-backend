@@ -14,7 +14,7 @@ RUN npm install --production
 COPY . .
 
 # Expose port (misal Express jalan di 3000)
-EXPOSE 3000
+EXPOSE 4000
 
 # Jalankan aplikasi
 CMD ["npm", "start"]
