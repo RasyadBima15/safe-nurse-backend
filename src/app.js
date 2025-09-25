@@ -24,11 +24,24 @@ app.use((req, res, next) => {
   next();
 });
 
+const allowedOrigins = [
+  'https://safe-nurse-lzam.vercel.app',
+  'http://localhost:3000'
+];
+
 app.use(cors({
-  origin: 'https://safe-nurse-lzam.vercel.app',
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  credentials: true // jika butuh cookies/auth
+  credentials: true
 }));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
