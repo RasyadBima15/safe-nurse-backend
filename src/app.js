@@ -34,18 +34,20 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
+    const allowed = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ];
     console.log("🔥 Request dari origin:", origin);
-    if (!origin || allowedOrigins.includes(origin)) {
-      console.log("✅ Origin diizinkan:", origin);
-      callback(null, true);
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true); // kalau origin undefined / ada di allowed → izinkan
     } else {
-      console.log("❌ Origin ditolak:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
