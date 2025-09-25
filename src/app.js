@@ -19,15 +19,17 @@ import notifikasiRoutes from './modules/notifikasi/notifikasi.routes.js';
 dotenv.config();
 const app = express();
 
-app.use(cors({
+const corsOptions = {
   origin: [
     "http://localhost:3000",
     "http://127.0.0.1:3000"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   credentials: true
-}));
-app.options("*", cors());
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(helmet());
 app.use(express.json());
 app.use(morgan('dev'));
