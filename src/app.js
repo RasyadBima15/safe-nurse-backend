@@ -1,46 +1,38 @@
-import express from 'express';
-import cors from 'cors';
-// import helmet from 'helmet';
-// import morgan from 'morgan';
-import dotenv from 'dotenv';
-
-import authRoutes from './modules/auth/auth.routes.js';
-import userRoutes from './modules/users/user.routes.js';
-import ruanganRoutes from './modules/ruangan/ruangan.routes.js';
-import perawatRoutes from './modules/perawat/perawat.routes.js';
-import kepalaRuanganRoutes from './modules/kepala_ruangan/kepala_ruangan.routes.js';
-import verifikatorRoutes from './modules/verifikator/verifikator.routes.js';
-import ipcnRoutes from './modules/chief_nursing/chief_nursing.routes.js';
-import adminRoutes from './modules/admin/admin.routes.js';
-import forgotPasswordRoutes from './modules/forgot-password/forgot_password.routes.js';
-import laporanRoutes from './modules/laporan/laporan.routes.js';
-import notifikasiRoutes from './modules/notifikasi/notifikasi.routes.js';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
 dotenv.config();
 const app = express();
 
+// ✅ Konfigurasi CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  // kalau frontend kamu deploy, tambahkan di sini:
+  // "https://safenurse.site"
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowed = [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000"
-    ];
-    console.log("Request Origin:", origin);
-    if (!origin || allowed.includes(origin)) {
+    console.log("🔥 Request dari origin:", origin);
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log("✅ Origin diizinkan:", origin);
       callback(null, true);
     } else {
+      console.log("❌ Origin ditolak:", origin);
       callback(new Error("Not allowed by CORS"));
     }
   },
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
 };
 
 app.use(cors(corsOptions));
-// app.use(helmet());
+
+// Middleware lain
 app.use(express.json());
-// app.use(morgan('dev'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
