@@ -26,8 +26,8 @@ const corsOptions = {
       "http://127.0.0.1:3000"
     ];
     console.log("Request Origin:", origin);
-    if (allowed.includes(origin)) {
-      callback(null, origin); // kasih origin spesifik
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
@@ -38,7 +38,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 // app.use(helmet());
 app.use(express.json());
 // app.use(morgan('dev'));
