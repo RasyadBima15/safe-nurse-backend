@@ -2,7 +2,7 @@ import { supabase } from '../../config/db.js';
 import { generateKodeLaporan } from '../../utils/generateKodeLaporan.js';
 import { hitungSkor } from '../../utils/scoring.js';
 import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/requiredFields.js';
-import { callGeminiAPI, validateChronologyAPI } from '../../config/geminiAI.js';
+import { callOpenAIAPI, validateChronologyAPI } from '../../config/openAI.js';
 import { nanoid } from 'nanoid'; 
 import { sendWA } from '../../config/wa.js'
 import { parseTanggal, parseTanggalDateOnly } from '../../utils/parseTanggal.js';
@@ -698,13 +698,13 @@ export async function cleanLaporanUsingLLM(req, res) {
             });
         }
 
-        const { data: cleanedData, usage } = await callGeminiAPI(body);
+        const { data: cleanedData, usage } = await callOpenAIAPI(body);
 
         // console.log("Data berhasil diolah oleh AI:", cleanedData);
 
-        if (usage && usage.promptTokenCount) {
-            console.log(`Monitoring Penggunaan Token: ${usage.promptTokenCount} token digunakan untuk input.`);
-        }
+        // if (usage && usage.promptTokenCount) {
+        //     console.log(`Monitoring Penggunaan Token: ${usage.promptTokenCount} token digunakan untuk input.`);
+        // }
 
         const finalReport = {
             ...body,

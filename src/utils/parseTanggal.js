@@ -1,7 +1,7 @@
 export function parseTanggal(tglString) {
   const [tanggal, waktu] = tglString.split(" ");
   const [day, month, year] = tanggal.split("/");
-  const [hour, minute] = waktu.split(".");
+  const [hour, minute] = waktu.split(":");
 
   const dateObj = new Date(`${year}-${month}-${day}T${hour}:${minute}:00+08:00`);
   return dateObj.toISOString();
