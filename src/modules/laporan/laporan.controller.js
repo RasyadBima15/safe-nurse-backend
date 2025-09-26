@@ -95,7 +95,7 @@ export async function getLaporanByIdLaporan(req, res) {
     }
 
     if (role === "chief_nursing") {
-      if (latestKepala) override = laporan; // default dari kepala_ruangan
+      if (latestKepala) override = laporan; // default dari AI
       if (latestChief) override = markUpdated(latestChief);
       if (latestVerifikator) override = markUpdated(latestVerifikator);
     }
@@ -254,6 +254,31 @@ export async function getLaporanForChiefNursing(req, res) {
 
         const tindak_lanjut = selfHistoryAksi?.[0]?.aksi || "-";
 
+        // --- Ambil history aksi terbaru dari kepala_ruangan, chief nursing, verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator", "chief_nursing"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const rolePriority = ["verifikator", "chief_nursing", "kepala_ruangan"];
+          let selected = null;
+
+          for (const role of rolePriority) {
+            selected = allHistoryAksi.find(h => h.users?.role === role);
+            if (selected) break; // ambil yang pertama sesuai prioritas
+          }
+
+          if (selected) {
+            override.kategori = selected.kategori || override.kategori;
+            override.grading = selected.grading || override.grading;
+            override.rekomendasi_tindakan =
+              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+        }
+
         // --- Ambil history catatan terbaru per role ---
         const { data: allHistoryCatatan } = await supabase
           .from("history_catatan")
@@ -327,6 +352,31 @@ export async function getAllLaporanForVerifikator(req, res) {
           .limit(1);
 
         const tindak_lanjut = selfHistoryAksi?.[0]?.aksi || "-";
+
+        // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const rolePriority = ["verifikator", "kepala_ruangan"];
+          let selected = null;
+
+          for (const role of rolePriority) {
+            selected = allHistoryAksi.find(h => h.users?.role === role);
+            if (selected) break; // ambil yang pertama sesuai prioritas
+          }
+
+          if (selected) {
+            override.kategori = selected.kategori || override.kategori;
+            override.grading = selected.grading || override.grading;
+            override.rekomendasi_tindakan =
+              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+        }
 
         // --- Ambil history catatan terbaru per role ---
         const { data: allHistoryCatatan } = await supabase
@@ -488,11 +538,20 @@ export async function getLaporanForPerawat(req, res) {
           .order("created_at", { ascending: false });
 
         if (allHistoryAksi && allHistoryAksi.length > 0) {
-          const latest = allHistoryAksi[0]; // 🔥 ambil yang terbaru
-          override.kategori = latest.kategori || override.kategori;
-          override.grading = latest.grading || override.grading;
-          override.rekomendasi_tindakan =
-            latest.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          const rolePriority = ["verifikator", "kepala_ruangan"];
+          let selected = null;
+
+          for (const role of rolePriority) {
+            selected = allHistoryAksi.find(h => h.users?.role === role);
+            if (selected) break; // ambil yang pertama sesuai prioritas
+          }
+
+          if (selected) {
+            override.kategori = selected.kategori || override.kategori;
+            override.grading = selected.grading || override.grading;
+            override.rekomendasi_tindakan =
+              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
         }
 
         // --- Ambil history catatan terbaru per role ---
@@ -569,6 +628,31 @@ export async function getLaporanForKepalaRuangan(req, res) {
           .limit(1);
 
         const tindak_lanjut = selfHistoryAksi?.[0]?.aksi || "-";
+
+        // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
+        const { data: allHistoryAksi } = await supabase
+          .from("history_aksi")
+          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .in("users.role", ["kepala_ruangan", "verifikator"])
+          .order("created_at", { ascending: false });
+
+        if (allHistoryAksi && allHistoryAksi.length > 0) {
+          const rolePriority = ["verifikator", "kepala_ruangan"];
+          let selected = null;
+
+          for (const role of rolePriority) {
+            selected = allHistoryAksi.find(h => h.users?.role === role);
+            if (selected) break; // ambil yang pertama sesuai prioritas
+          }
+
+          if (selected) {
+            override.kategori = selected.kategori || override.kategori;
+            override.grading = selected.grading || override.grading;
+            override.rekomendasi_tindakan =
+              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+          }
+        }
 
         // --- Ambil history catatan terbaru per role ---
         const { data: allHistoryCatatan } = await supabase
