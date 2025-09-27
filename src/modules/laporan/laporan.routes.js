@@ -12,7 +12,7 @@ import {
     approveLaporan,
     validateChronology,
     sendWANotification,
-    tambahCatatan,
+    // tambahCatatan,
     getLaporanMasuk,
     revisiLaporan } from './laporan.controller.js';
 import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
@@ -33,7 +33,7 @@ router.get('/laporanMasuk', authenticateToken, authorizeRoles("kepala_ruangan", 
 router.get('/:kode_laporan', authenticateToken, authorizeRoles("perawat", "kepala_ruangan", "chief_nursing", "verifikator"), getLaporanByIdLaporan);
 
 router.post('/reject/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan"), rejectLaporan);
-router.post('/addCatatan/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), tambahCatatan);
+// router.post('/addCatatan/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), tambahCatatan);
 router.post('/approve/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), approveLaporan);
 router.post('/revisi/:kode_laporan', authenticateToken, authorizeRoles("kepala_ruangan", "chief_nursing", "verifikator"), revisiLaporan);
 

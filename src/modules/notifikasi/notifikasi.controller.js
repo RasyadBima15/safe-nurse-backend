@@ -122,3 +122,46 @@ export async function createNotifikasi(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function deleteNotifikasiById(req, res) {
+  try {
+    const { id_notifikasi } = req.params;
+
+    if (!id_notifikasi) {
+      return res.status(400).json({ message: "ID Notifikasi wajib diisi" });
+    }
+
+    const { error } = await supabase
+      .from("notifikasi")
+      .delete()
+      .eq("id_notifikasi", id_notifikasi);
+
+    if (error) throw error;
+
+    res.json({ message: "Notifikasi berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function deleteAllNotifikasi(req, res) {
+  try {
+    const { id_user } = req.user;
+
+    if (!id_user) {
+      return res.status(400).json({ message: "ID User wajib diisi" });
+    }
+
+    const { error } = await supabase
+      .from("notifikasi")
+      .delete()
+      .eq("id_user", id_user);
+
+    if (error) throw error;
+
+    res.json({ message: "Semua notifikasi berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+

@@ -896,126 +896,126 @@ export async function sendWANotification(req, res){
     }
 }
 
-export async function tambahCatatan(req, res) {
-  try {
-    const { kode_laporan } = req.params;
-    const { catatan } = req.body;
-    const { id_user, role } = req.user;
+// export async function tambahCatatan(req, res) {
+//   try {
+//     const { kode_laporan } = req.params;
+//     const { catatan } = req.body;
+//     const { id_user, role } = req.user;
 
-    if (!kode_laporan || !catatan?.trim()) {
-      return res.status(400).json({ message: "Kode Laporan dan Catatan wajib diisi" });
-    }
+//     if (!kode_laporan || !catatan?.trim()) {
+//       return res.status(400).json({ message: "Kode Laporan dan Catatan wajib diisi" });
+//     }
 
-    const { data: laporan, error: laporanError } = await supabase
-      .from("laporan")
-      .select(`
-        status,
-        perawat(id_user, nama_perawat),
-        ruangan(id_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
-      `)
-      .eq("kode_laporan", kode_laporan)
-      .single();
+//     const { data: laporan, error: laporanError } = await supabase
+//       .from("laporan")
+//       .select(`
+//         status,
+//         perawat(id_user, nama_perawat),
+//         ruangan(id_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+//       `)
+//       .eq("kode_laporan", kode_laporan)
+//       .single();
 
-    if (laporanError) throw new Error(`Gagal cek laporan: ${laporanError.message}`);
-    if (!laporan) return res.status(404).json({ message: "Laporan tidak ditemukan" });
+//     if (laporanError) throw new Error(`Gagal cek laporan: ${laporanError.message}`);
+//     if (!laporan) return res.status(404).json({ message: "Laporan tidak ditemukan" });
 
-    const catatanInsert = {
-      id_catatan: nanoid(),
-      kode_laporan,
-      id_user,
-      catatan: catatan.trim(),
-    };
-    const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
-    if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
+//     const catatanInsert = {
+//       id_catatan: nanoid(),
+//       kode_laporan,
+//       id_user,
+//       catatan: catatan.trim(),
+//     };
+//     const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
+//     if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
 
-    let notifikasi = [];
+//     let notifikasi = [];
 
-    if (role === "kepala_ruangan") {
-    // kepala ruangan → hanya ke perawat
-    notifikasi.push({
-        id_notifikasi: nanoid(),
-        id_user: laporan.perawat.id_user,
-        message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
-    });
+//     if (role === "kepala_ruangan") {
+//     // kepala ruangan → hanya ke perawat
+//     notifikasi.push({
+//         id_notifikasi: nanoid(),
+//         id_user: laporan.perawat.id_user,
+//         message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
+//     });
 
-    // notifikasi khusus untuk dirinya sendiri
-    notifikasi.push({
-        id_notifikasi: nanoid(),
-        id_user,
-        message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
-    });
+//     // notifikasi khusus untuk dirinya sendiri
+//     notifikasi.push({
+//         id_notifikasi: nanoid(),
+//         id_user,
+//         message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
+//     });
 
-    const { data: usersData, error: usersError } = await supabase
-        .from("users")
-        .select("id_user, role");
+//     const { data: usersData, error: usersError } = await supabase
+//         .from("users")
+//         .select("id_user, role");
 
-        if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
+//         if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
 
-        usersData
-        .filter((u) => ["chief_nursing", "verifikator"].includes(u.role))
-        .forEach((u) => {
-            notifikasi.push({
-            id_notifikasi: nanoid(),
-            id_user: u.id_user,
-            message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
-            });
-    });
-    } else if (role === "verifikator" || role === "chief_nursing") {
-    // verifikator & chief nursing → broadcast ke semua pihak
-    const { data: usersData, error: usersError } = await supabase
-        .from("users")
-        .select("id_user, role");
+//         usersData
+//         .filter((u) => ["chief_nursing", "verifikator"].includes(u.role))
+//         .forEach((u) => {
+//             notifikasi.push({
+//             id_notifikasi: nanoid(),
+//             id_user: u.id_user,
+//             message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
+//             });
+//     });
+//     } else if (role === "verifikator" || role === "chief_nursing") {
+//     // verifikator & chief nursing → broadcast ke semua pihak
+//     const { data: usersData, error: usersError } = await supabase
+//         .from("users")
+//         .select("id_user, role");
 
-    if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
+//     if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
 
-    const targetIds = new Set();
+//     const targetIds = new Set();
 
-    // Perawat laporan
-    if (laporan.perawat?.id_user) targetIds.add(laporan.perawat.id_user);
+//     // Perawat laporan
+//     if (laporan.perawat?.id_user) targetIds.add(laporan.perawat.id_user);
 
-    // Kepala ruangan laporan
-    if (laporan.ruangan?.kepala_ruangan?.length > 0) {
-        laporan.ruangan.kepala_ruangan.forEach((k) => targetIds.add(k.id_user));
-    }
+//     // Kepala ruangan laporan
+//     if (laporan.ruangan?.kepala_ruangan?.length > 0) {
+//         laporan.ruangan.kepala_ruangan.forEach((k) => targetIds.add(k.id_user));
+//     }
 
-    // Semua chief nursing & verifikator
-    usersData.forEach((u) => {
-        if (["chief_nursing", "verifikator"].includes(u.role)) {
-        targetIds.add(u.id_user);
-        }
-    });
+//     // Semua chief nursing & verifikator
+//     usersData.forEach((u) => {
+//         if (["chief_nursing", "verifikator"].includes(u.role)) {
+//         targetIds.add(u.id_user);
+//         }
+//     });
 
-    // Broadcast ke semua target (kecuali diri sendiri)
-    notifikasi = Array.from(targetIds)
-        .filter((uid) => uid !== id_user)
-        .map((uid) => ({
-        id_notifikasi: nanoid(),
-        id_user: uid,
-        message: `Catatan dari ${role.replace("_", " ")}: ${catatan.trim()}`,
-        }));
+//     // Broadcast ke semua target (kecuali diri sendiri)
+//     notifikasi = Array.from(targetIds)
+//         .filter((uid) => uid !== id_user)
+//         .map((uid) => ({
+//         id_notifikasi: nanoid(),
+//         id_user: uid,
+//         message: `Catatan dari ${role.replace("_", " ")}: ${catatan.trim()}`,
+//         }));
 
-    // Notifikasi khusus untuk dirinya sendiri
-    notifikasi.push({
-        id_notifikasi: nanoid(),
-        id_user,
-        message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
-    });
-    }
+//     // Notifikasi khusus untuk dirinya sendiri
+//     notifikasi.push({
+//         id_notifikasi: nanoid(),
+//         id_user,
+//         message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
+//     });
+//     }
 
-    // Insert jika ada notifikasi
-    if (notifikasi.length > 0) {
-    const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
-    if (notifError) throw new Error(`Gagal insert notifikasi: ${notifError.message}`);
-    }
+//     // Insert jika ada notifikasi
+//     if (notifikasi.length > 0) {
+//     const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
+//     if (notifError) throw new Error(`Gagal insert notifikasi: ${notifError.message}`);
+//     }
 
-    return res.status(200).json({
-      message: "Catatan berhasil ditambahkan."
-    });
-  } catch (error) {
-    console.error("tambahCatatan error:", error);
-    res.status(500).json({ error: error.message });
-  }
-}
+//     return res.status(200).json({
+//       message: "Catatan berhasil ditambahkan."
+//     });
+//   } catch (error) {
+//     console.error("tambahCatatan error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// }
 
 export async function rejectLaporan(req, res) {
   try {
@@ -1083,7 +1083,7 @@ export async function rejectLaporan(req, res) {
       notifikasi.push({
         id_notifikasi: nanoid(),
         id_user: laporan.perawat.id_user,
-        message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan. Catatan: ${catatan}`,
+        message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
       });
     }
 
@@ -1107,7 +1107,7 @@ export async function rejectLaporan(req, res) {
         notifikasi.push({
           id_notifikasi: nanoid(),
           id_user: u.id_user,
-          message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan. Catatan: ${catatan}`,
+          message: `Laporan dengan kode ${kode_laporan} ditolak oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
         });
       });
 
@@ -1129,9 +1129,14 @@ export async function rejectLaporan(req, res) {
 export async function approveLaporan(req, res) {
   try {
     const { kode_laporan } = req.params;
+    const { catatan } = req.body
     const { role, id_user } = req.user;
     if (!kode_laporan) {
       return res.status(400).json({ message: "Kode Laporan wajib diisi" });
+    }
+
+    if (!catatan || catatan.trim() === "") {
+      return res.status(400).json({ message: "Catatan wajib diisi saat menyetujui laporan" });
     }
 
     const { data: laporanData, error: laporanError } = await supabase
@@ -1209,6 +1214,16 @@ export async function approveLaporan(req, res) {
     ]);
     if (aksiError) throw new Error(`Gagal insert history_aksi: ${aksiError.message}`);
 
+    // Simpan catatan ke history_catatan
+    const catatanInsert = {
+      id_catatan: nanoid(),
+      kode_laporan,
+      id_user,
+      catatan,
+    };
+    const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
+    if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
+
     // 🔔 Kirim notifikasi
     const notifikasi = [];
 
@@ -1235,7 +1250,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user: laporanUpdate.perawat.id_user,
-            message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
+            message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
         });
 
         if (verifikatorList?.length) {
@@ -1243,7 +1258,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
                 });
             });
         }
@@ -1253,7 +1268,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
                 });
             });
         }
@@ -1262,7 +1277,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
         });
 
         //kirimkan notifikasi ke WA verifikator dan chief nursing
@@ -1282,12 +1297,12 @@ export async function approveLaporan(req, res) {
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
+                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
             },
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
+                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
             }
         );
 
@@ -1296,7 +1311,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
                 });
             });
         }
@@ -1305,7 +1320,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
         });
 
     } else if (role === "chief_nursing") {
@@ -1323,29 +1338,16 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing. Catatan dari Chief Nursing: ${catatan}`,
                 });
             });
         }
-
-        notifikasi.push(
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh chief nursing.`,
-            },
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh chief nursing.`,
-            }
-        );
 
         // ✅ Notifikasi ke dirinya sendiri
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
         });
 
         //kirimkan notifikasi ke WA verifikator
@@ -1370,7 +1372,7 @@ export async function approveLaporan(req, res) {
 export async function revisiLaporan(req, res) {
     try {
         const { kode_laporan } = req.params;
-        const { kategori, grading, rekomendasi_tindakan } = req.body;
+        const { kategori, grading, rekomendasi_tindakan, catatan } = req.body;
         const { role, id_user } = req.user;
 
         if (!kode_laporan) {
@@ -1379,9 +1381,9 @@ export async function revisiLaporan(req, res) {
         if (!role) {
             return res.status(400).json({ message: "Role wajib diisi" });
         }
-        if (!kategori || !grading || !rekomendasi_tindakan) {
+        if (!kategori || !grading || !rekomendasi_tindakan || !catatan || catatan.trim() === "") {
             return res.status(400).json({
-                message: "Kategori, grading, dan rekomendasi_tindakan wajib diisi",
+                message: "Kategori, grading, rekomendasi_tindakan, dan catatan wajib diisi",
             });
         }
 
@@ -1462,6 +1464,16 @@ export async function revisiLaporan(req, res) {
     ]);
     if (aksiError) throw new Error(`Gagal insert history_aksi: ${aksiError.message}`);
 
+    // Simpan catatan ke history_catatan
+    const catatanInsert = {
+      id_catatan: nanoid(),
+      kode_laporan,
+      id_user,
+      catatan,
+    };
+    const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
+    if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
+
     // 🔔 Kirim notifikasi
     const notifikasi = [];
 
@@ -1489,7 +1501,7 @@ export async function revisiLaporan(req, res) {
     notifikasi.push({
         id_notifikasi: nanoid(),
         id_user: laporanUpdate.perawat.id_user,
-        message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan.`,
+        message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
     });
 
     if (verifikatorList?.length) {
@@ -1497,7 +1509,7 @@ export async function revisiLaporan(req, res) {
             notifikasi.push({
                 id_notifikasi: nanoid(),
                 id_user: v.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan.`,
+                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
             });
         });
     }
@@ -1507,7 +1519,7 @@ export async function revisiLaporan(req, res) {
             notifikasi.push({
                 id_notifikasi: nanoid(),
                 id_user: c.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan.`,
+                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
             });
         });
     }
@@ -1516,7 +1528,7 @@ export async function revisiLaporan(req, res) {
     notifikasi.push({
         id_notifikasi: nanoid(),
         id_user,
-        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
     });
 
     //kirimkan notifikasi WA ke verifikator dan chief nursing
@@ -1536,12 +1548,12 @@ export async function revisiLaporan(req, res) {
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
             },
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
             }
         );
 
@@ -1550,7 +1562,7 @@ export async function revisiLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
                 });
             });
         }
@@ -1559,7 +1571,7 @@ export async function revisiLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
         });
 
     } else if (role === "chief_nursing") {
@@ -1577,29 +1589,16 @@ export async function revisiLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
+                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing. Catatan dari Chief Nursing: ${catatan}`,
                 });
             });
         }
-
-        notifikasi.push(
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
-            },
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
-            }
-        );
 
         // ✅ Notifikasi ke dirinya sendiri
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
         });
 
         //kirimkan notifikasi WA ke verifikator
