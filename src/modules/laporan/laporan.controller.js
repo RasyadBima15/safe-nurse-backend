@@ -4,8 +4,8 @@ import { hitungSkor } from '../../utils/scoring.js';
 import { requiredFieldsForConfirmation, requiredFieldsForAI } from '../../utils/requiredFields.js';
 import { callOpenAIAPI, validateChronologyAPI } from '../../config/openAI.js';
 import { nanoid } from 'nanoid'; 
-import { sendWA } from '../../config/wa.js'
 import { parseTanggal, parseTanggalDateOnly } from '../../utils/parseTanggal.js';
+import { emailTemplates, transporter } from '../../config/email.js';
 
 export async function getLaporanByIdLaporan(req, res) {
   try {
@@ -867,7 +867,21 @@ export async function generateLaporan(req, res) {
             return res.status(500).json({ error: notifError.message });
         }
 
-        //tambahkan notifikasi WA ke kepala ruangan
+        //tambahkan notifikasi Email ke kepala ruangan
+        const link = `${process.env.FRONTEND_URL}`;
+
+        const emailContent = emailTemplates.notifikasi(
+            "kepala_ruangan", 
+            kode_laporan, 
+            link
+        );
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: "projectkeperawatan@gmail.com",
+            subject: emailContent.subject,
+            html: emailContent.html,
+        });
 
         return res.status(200).json({
             message: "Laporan berhasil dibuat & notifikasi terkirim",
@@ -878,144 +892,6 @@ export async function generateLaporan(req, res) {
         res.status(500).json({ error: error.message });
     }
 }
-
-export async function sendWANotification(req, res){
-    try {
-        const pengirim = "Pengguna A";
-        const penerimaB = "628871293167";
-        const pesanDariA = "Halo B, ini pesan dikirim via node-fetch!";
-
-        await sendWA(penerimaB, pengirim, pesanDariA);
-
-        return res.status(200).json({
-            message: "Berhasil terkirim!!!"
-        });
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
-
-// export async function tambahCatatan(req, res) {
-//   try {
-//     const { kode_laporan } = req.params;
-//     const { catatan } = req.body;
-//     const { id_user, role } = req.user;
-
-//     if (!kode_laporan || !catatan?.trim()) {
-//       return res.status(400).json({ message: "Kode Laporan dan Catatan wajib diisi" });
-//     }
-
-//     const { data: laporan, error: laporanError } = await supabase
-//       .from("laporan")
-//       .select(`
-//         status,
-//         perawat(id_user, nama_perawat),
-//         ruangan(id_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
-//       `)
-//       .eq("kode_laporan", kode_laporan)
-//       .single();
-
-//     if (laporanError) throw new Error(`Gagal cek laporan: ${laporanError.message}`);
-//     if (!laporan) return res.status(404).json({ message: "Laporan tidak ditemukan" });
-
-//     const catatanInsert = {
-//       id_catatan: nanoid(),
-//       kode_laporan,
-//       id_user,
-//       catatan: catatan.trim(),
-//     };
-//     const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
-//     if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
-
-//     let notifikasi = [];
-
-//     if (role === "kepala_ruangan") {
-//     // kepala ruangan → hanya ke perawat
-//     notifikasi.push({
-//         id_notifikasi: nanoid(),
-//         id_user: laporan.perawat.id_user,
-//         message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
-//     });
-
-//     // notifikasi khusus untuk dirinya sendiri
-//     notifikasi.push({
-//         id_notifikasi: nanoid(),
-//         id_user,
-//         message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
-//     });
-
-//     const { data: usersData, error: usersError } = await supabase
-//         .from("users")
-//         .select("id_user, role");
-
-//         if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
-
-//         usersData
-//         .filter((u) => ["chief_nursing", "verifikator"].includes(u.role))
-//         .forEach((u) => {
-//             notifikasi.push({
-//             id_notifikasi: nanoid(),
-//             id_user: u.id_user,
-//             message: `Catatan dari kepala ruangan: ${catatan.trim()}`,
-//             });
-//     });
-//     } else if (role === "verifikator" || role === "chief_nursing") {
-//     // verifikator & chief nursing → broadcast ke semua pihak
-//     const { data: usersData, error: usersError } = await supabase
-//         .from("users")
-//         .select("id_user, role");
-
-//     if (usersError) throw new Error(`Gagal ambil users: ${usersError.message}`);
-
-//     const targetIds = new Set();
-
-//     // Perawat laporan
-//     if (laporan.perawat?.id_user) targetIds.add(laporan.perawat.id_user);
-
-//     // Kepala ruangan laporan
-//     if (laporan.ruangan?.kepala_ruangan?.length > 0) {
-//         laporan.ruangan.kepala_ruangan.forEach((k) => targetIds.add(k.id_user));
-//     }
-
-//     // Semua chief nursing & verifikator
-//     usersData.forEach((u) => {
-//         if (["chief_nursing", "verifikator"].includes(u.role)) {
-//         targetIds.add(u.id_user);
-//         }
-//     });
-
-//     // Broadcast ke semua target (kecuali diri sendiri)
-//     notifikasi = Array.from(targetIds)
-//         .filter((uid) => uid !== id_user)
-//         .map((uid) => ({
-//         id_notifikasi: nanoid(),
-//         id_user: uid,
-//         message: `Catatan dari ${role.replace("_", " ")}: ${catatan.trim()}`,
-//         }));
-
-//     // Notifikasi khusus untuk dirinya sendiri
-//     notifikasi.push({
-//         id_notifikasi: nanoid(),
-//         id_user,
-//         message: `Catatan Anda untuk laporan ${kode_laporan} berhasil dikirim.`,
-//     });
-//     }
-
-//     // Insert jika ada notifikasi
-//     if (notifikasi.length > 0) {
-//     const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
-//     if (notifError) throw new Error(`Gagal insert notifikasi: ${notifError.message}`);
-//     }
-
-//     return res.status(200).json({
-//       message: "Catatan berhasil ditambahkan."
-//     });
-//   } catch (error) {
-//     console.error("tambahCatatan error:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// }
 
 export async function rejectLaporan(req, res) {
   try {
@@ -1361,6 +1237,25 @@ export async function approveLaporan(req, res) {
         if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
     }
 
+    //tambahkan notifikasi Email ke verifikator
+    const link = `${process.env.FRONTEND_URL}`;
+
+    if (role === 'kepala_ruangan' || role === 'chief_nursing') {
+      const emailContent = emailTemplates.notifikasi(
+            "verifikator", 
+            kode_laporan, 
+            link,
+            role
+      );
+
+      await transporter.sendMail({
+              from: process.env.EMAIL_USER,
+              to: "projectkeperawatan@gmail.com",
+              subject: emailContent.subject,
+              html: emailContent.html,
+      });
+    }
+
     return res.status(200).json({
       message: "Laporan berhasil di-approve"
     });
@@ -1610,6 +1505,25 @@ export async function revisiLaporan(req, res) {
         .insert(notifikasi);
 
     if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
+    }
+
+    //tambahkan notifikasi Email ke verifikator
+    const link = `${process.env.FRONTEND_URL}`;
+
+    if (role === 'kepala_ruangan' || role === 'chief_nursing') {
+      const emailContent = emailTemplates.notifikasi(
+            "verifikator", 
+            kode_laporan, 
+            link,
+            role
+      );
+
+      await transporter.sendMail({
+              from: process.env.EMAIL_USER,
+              to: "projectkeperawatan@gmail.com",
+              subject: emailContent.subject,
+              html: emailContent.html,
+      });
     }
 
     return res.status(200).json({

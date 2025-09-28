@@ -49,11 +49,61 @@ export const emailTemplates = {
         </div>
         
         <div style="background-color: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
-          <p style="margin: 0;">© 2024 SAFE-Nurse. Semua hak dilindungi.</p>
+          <p style="margin: 0;">© 2025 SAFE-Nurse. Semua hak dilindungi.</p>
         </div>
       </div>
     `
-  })
+  }),
+  notifikasi: (role, kodeLaporan, link, dari = null) => {
+    let subject = "Notifikasi Laporan - SAFE-Nurse";
+    let message = "";
+
+    if (role === "kepala_ruangan") {
+      message = `Ada laporan baru dengan kode <strong>${kodeLaporan}</strong> dari perawat di ruangan Anda. Segera lakukan tindak lanjut.`;
+    } else if (role === "chief_nursing" || role === "verifikator") {
+      if (dari === "kepala_ruangan") {
+        message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh kepala ruangan. Segera lakukan tindak lanjut.`;
+      } else if (dari === "chief_nursing") {
+        message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh chief nursing. Segera lakukan tindak lanjut.`;
+      }
+    } 
+
+    return {
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #059669; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">SAFE-Nurse</h1>
+            <p style="margin: 10px 0 0 0;">Notifikasi Laporan</p>
+          </div>
+          
+          <div style="padding: 30px; background-color: #f9fafb;">
+            <h2 style="color: #1f2937; margin-bottom: 20px;">📢 Pemberitahuan</h2>
+            
+            <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
+              ${message}
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${link}" 
+                 style="background-color: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Lihat Laporan
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px; text-align: center;">
+              Atau buka link berikut di browser Anda:<br>
+              <span style="color: #059669; word-break: break-all;">${link}</span>
+            </p>
+          </div>
+          
+          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+            <p style="margin: 0;">© 2025 SAFE-Nurse. Semua hak dilindungi.</p>
+          </div>
+        </div>
+      `
+    };
+  }
 };
 
 // export default { transporter, emailTemplates };

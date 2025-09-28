@@ -11,15 +11,12 @@ import {
     rejectLaporan, 
     approveLaporan,
     validateChronology,
-    sendWANotification,
-    // tambahCatatan,
     getLaporanMasuk,
     revisiLaporan } from './laporan.controller.js';
 import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.post('/sendWA', authenticateToken, authorizeRoles("perawat", "kepala_ruangan"), sendWANotification);
 router.post('/generate', authenticateToken, authorizeRoles("perawat"), generateLaporan);
 router.post('/clean', authenticateToken, authorizeRoles("perawat"), cleanLaporanUsingLLM);
 router.post('/validateChronology', authenticateToken, authorizeRoles("perawat"), validateChronology);
