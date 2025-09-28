@@ -164,7 +164,9 @@ export async function getLaporanMasuk(req, res) {
     } else if (role === "chief_nursing") {
       query = query.eq("status", "diteruskan ke verifikator");
     } else if (role === "verifikator") {
-      query = query.eq("status", "diteruskan ke verifikator");
+      query = query.or(
+        'status.eq.diteruskan ke verifikator,status.eq.laporan disetujui chief nursing'
+      );
     } else {
       return res.status(403).json({ message: "Role tidak diizinkan" });
     }
