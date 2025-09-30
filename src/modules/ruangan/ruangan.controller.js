@@ -38,5 +38,53 @@ export async function registerRuangan(req, res) {
   }
 }
 
+export async function updateRuangan(req, res) {
+  try {
+    const { id_ruangan }= req.params
+    const { nama_ruangan } = req.body;
+
+    if (!id_ruangan || !nama_ruangan) {
+      return res.status(400).json({ message: "id_ruangan dan nama_ruangan wajib diisi" });
+    }
+
+    const { error } = await supabase
+      .from("ruangan")
+      .update({ nama_ruangan })
+      .eq("id_ruangan", id_ruangan);
+
+    if (error) {
+      return res.status(500).json({ message: error.message });
+    }
+
+    res.json({ message: "Ruangan berhasil diperbarui" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+export async function deleteRuangan(req, res) {
+  try {
+    const { id_ruangan } = req.params;
+
+    if (!id_ruangan) {
+      return res.status(400).json({ message: "id_ruangan wajib diisi" });
+    }
+
+    const { error } = await supabase
+      .from("ruangan")
+      .delete()
+      .eq("id_ruangan", id_ruangan);
+
+    if (error) {
+      return res.status(500).json({ message: error.message });
+    }
+
+    res.json({ message: "Ruangan berhasil dihapus" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+
 
 

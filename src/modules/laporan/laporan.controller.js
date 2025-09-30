@@ -839,9 +839,6 @@ export async function generateLaporan(req, res) {
             message: `Laporan dengan kode laporan ${kode_laporan} sudah diterima dan sedang ditindak lanjuti oleh validator`,
         });
 
-        console.log(ruangan?.kepala_ruangan[0]?.id_user)
-        console.log(ruangan.kepala_ruangan[0].id_user)
-
         // Notif ke kepala ruangan (hanya 1 orang dari data ruangan)
         if (ruangan?.kepala_ruangan[0]?.id_user) {
             notifikasi.push({
@@ -873,17 +870,34 @@ export async function generateLaporan(req, res) {
         const link = `${process.env.FRONTEND_URL}`;
 
         const emailContent = emailTemplates.notifikasi(
-            "kepala_ruangan", 
             kode_laporan, 
             link
         );
 
-        await transporter.sendMail({
+        // ambil email kepala ruangan berdasarkan id_user
+        let kepalaEmail = null;
+        if (ruangan?.kepala_ruangan[0]?.id_user) {
+          const { data: kepalaUser, error: kepalaUserError } = await supabase
+            .from("users")
+            .select("email")
+            .eq("id_user", ruangan.kepala_ruangan[0].id_user)
+            .maybeSingle();
+
+          if (kepalaUserError) {
+            console.error("Gagal ambil email kepala ruangan:", kepalaUserError.message);
+          }
+
+          kepalaEmail = kepalaUser?.email;
+        }
+
+        if (kepalaEmail) {
+          await transporter.sendMail({
             from: process.env.EMAIL_USER,
-            to: "projectkeperawatan@gmail.com",
+            to: kepalaEmail,
             subject: emailContent.subject,
             html: emailContent.html,
-        });
+          });
+        }
 
         return res.status(200).json({
             message: "Laporan berhasil dibuat & notifikasi terkirim",
@@ -1239,22 +1253,61 @@ export async function approveLaporan(req, res) {
         if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
     }
 
-    //tambahkan notifikasi Email ke verifikator
+    // Tambahkan notifikasi Email sesuai role
     const link = `${process.env.FRONTEND_URL}`;
 
-    if (role === 'kepala_ruangan' || role === 'chief_nursing') {
-      const emailContent = emailTemplates.notifikasi(
-            "verifikator", 
-            kode_laporan, 
-            link,
-            role
-      );
+    if (role === 'kepala_ruangan') {
+      // kepala_ruangan -> verifikator & chief nursing
+      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
+      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
 
-      await transporter.sendMail({
-              from: process.env.EMAIL_USER,
-              to: "projectkeperawatan@gmail.com",
-              subject: emailContent.subject,
-              html: emailContent.html,
+      [...(verifikatorList || []), ...(chiefNursingList || [])].forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "kepala_ruangan");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      });
+
+    } else if (role === 'chief_nursing') {
+      // chief_nursing -> verifikator
+      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
+
+      (verifikatorList || []).forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "chief_nursing");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      });
+
+    } else if (role === 'verifikator') {
+      // verifikator -> kepala ruangan & chief nursing
+      const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
+      let kepalaEmail = null;
+      if (kepalaId) {
+        const { data: kepalaUser } = await supabase.from("users").select("email").eq("id_user", kepalaId).maybeSingle();
+        kepalaEmail = kepalaUser?.email;
+      }
+
+      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
+
+      const targets = [];
+      if (kepalaEmail) targets.push({ email: kepalaEmail });
+      targets.push(...(chiefNursingList || []));
+
+      targets.forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "verifikator");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
       });
     }
 
@@ -1509,22 +1562,61 @@ export async function revisiLaporan(req, res) {
     if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
     }
 
-    //tambahkan notifikasi Email ke verifikator
+    // Tambahkan notifikasi Email sesuai role
     const link = `${process.env.FRONTEND_URL}`;
 
-    if (role === 'kepala_ruangan' || role === 'chief_nursing') {
-      const emailContent = emailTemplates.notifikasi(
-            "verifikator", 
-            kode_laporan, 
-            link,
-            role
-      );
+    if (role === 'kepala_ruangan') {
+      // kepala_ruangan -> verifikator & chief nursing
+      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
+      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
 
-      await transporter.sendMail({
-              from: process.env.EMAIL_USER,
-              to: "projectkeperawatan@gmail.com",
-              subject: emailContent.subject,
-              html: emailContent.html,
+      [...(verifikatorList || []), ...(chiefNursingList || [])].forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "kepala_ruangan");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      });
+
+    } else if (role === 'chief_nursing') {
+      // chief_nursing -> verifikator
+      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
+
+      (verifikatorList || []).forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "chief_nursing");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      });
+
+    } else if (role === 'verifikator') {
+      // verifikator -> kepala ruangan & chief nursing
+      const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
+      let kepalaEmail = null;
+      if (kepalaId) {
+        const { data: kepalaUser } = await supabase.from("users").select("email").eq("id_user", kepalaId).maybeSingle();
+        kepalaEmail = kepalaUser?.email;
+      }
+
+      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
+
+      const targets = [];
+      if (kepalaEmail) targets.push({ email: kepalaEmail });
+      targets.push(...(chiefNursingList || []));
+
+      targets.forEach(async (u) => {
+        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "verifikator");
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
       });
     }
 

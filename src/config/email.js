@@ -1,5 +1,13 @@
 import { createTransport } from 'nodemailer';
 
+const roleDisplayName = {
+  perawat: "Perawat",
+  kepala_ruangan: "Kepala Ruangan",
+  chief_nursing: "Chief Nursing",
+  verifikator: "Verifikator",
+  super_admin: "Super Admin",
+};
+
 export const transporter = createTransport({
   service: 'gmail',
   auth: {
@@ -42,7 +50,7 @@ export const emailTemplates = {
           
           <div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin-top: 20px;">
             <p style="color: #dc2626; margin: 0; font-size: 14px;">
-              <strong>Peringatan:</strong> Link ini akan expired dalam 1 jam. 
+              <strong>Peringatan:</strong> Link ini akan expired dalam 5 menit. 
               Jika Anda tidak meminta reset password, abaikan email ini.
             </p>
           </div>
@@ -54,19 +62,20 @@ export const emailTemplates = {
       </div>
     `
   }),
-  notifikasi: (role, kodeLaporan, link, dari = null) => {
+  notifikasi: (kodeLaporan, link, dari = null) => {
     let subject = "Notifikasi Laporan - SAFE-Nurse";
     let message = "";
 
-    if (role === "kepala_ruangan") {
+    if (dari === null) {
+      // default (misalnya saat laporan pertama kali dibuat oleh perawat)
       message = `Ada laporan baru dengan kode <strong>${kodeLaporan}</strong> dari perawat di ruangan Anda. Segera lakukan tindak lanjut.`;
-    } else if (role === "chief_nursing" || role === "verifikator") {
-      if (dari === "kepala_ruangan") {
-        message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh kepala ruangan. Segera lakukan tindak lanjut.`;
-      } else if (dari === "chief_nursing") {
-        message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh chief nursing. Segera lakukan tindak lanjut.`;
-      }
-    } 
+    } else if (dari === "kepala_ruangan") {
+      message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh kepala ruangan. Segera lakukan tindak lanjut.`;
+    } else if (dari === "chief_nursing") {
+      message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh chief nursing. Segera lakukan tindak lanjut.`;
+    } else if (dari === "verifikator") {
+      message = `Laporan dengan kode <strong>${kodeLaporan}</strong> telah disetujui oleh verifikator. Segera review laporan.`; 
+    }
 
     return {
       subject,
@@ -86,7 +95,7 @@ export const emailTemplates = {
 
             <div style="text-align: center; margin: 30px 0;">
               <a href="${link}" 
-                 style="background-color: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                style="background-color: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Lihat Laporan
               </a>
             </div>
@@ -102,6 +111,61 @@ export const emailTemplates = {
           </div>
         </div>
       `
+    };
+  },
+  registerAccount: (email, plainPassword, role, loginLink) => {
+  const displayRole = roleDisplayName[role] || role;
+
+  return {
+    subject: 'Akun SAFE-Nurse Anda Telah Dibuat',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #10B981; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">SAFE-Nurse</h1>
+          <p style="margin: 10px 0 0 0;">Akun Baru Berhasil Dibuat</p>
+        </div>
+        
+        <div style="padding: 30px; background-color: #f9fafb;">
+          <h2 style="color: #1f2937; margin-bottom: 20px;">👋 Selamat datang di SAFE-Nurse!</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
+            Akun Anda telah berhasil didaftarkan dengan detail berikut:
+          </p>
+
+          <ul style="color: #1f2937; line-height: 1.6; margin-bottom: 20px;">
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Role:</strong> ${displayRole}</li>
+          </ul>
+
+          <div style="margin-bottom: 20px;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #1f2937;">Password:</p>
+            <div style="background-color: #ffffff; border: 1px solid #d1d5db; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; color: #111827; text-align: center;">
+              ${plainPassword}
+            </div>
+            <p style="font-size: 12px; color: #6b7280; margin-top: 8px; text-align: center;">
+              (Salin password ini untuk login pertama kali)
+            </p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginLink}" 
+              style="background-color: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+              Login ke SAFE-Nurse
+            </a>
+          </div>
+
+          <div style="background-color: #FEF9C3; border: 1px solid #FACC15; padding: 15px; border-radius: 6px; margin-top: 20px;">
+            <p style="color: #92400E; margin: 0; font-size: 14px;">
+              ⚠️ Demi keamanan, segera login dan ganti password Anda setelah berhasil masuk ke sistem.
+            </p>
+          </div>
+        </div>
+        
+        <div style="background-color: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+          <p style="margin: 0;">© 2025 SAFE-Nurse. Semua hak dilindungi.</p>
+        </div>
+      </div>
+    `
     };
   }
 };

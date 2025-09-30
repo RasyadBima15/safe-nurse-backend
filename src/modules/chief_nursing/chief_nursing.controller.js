@@ -24,7 +24,8 @@ export async function getChiefNursingById(req, res) {
       .select(`
         *,
         users(email)
-        `)
+      `)
+      .eq("id_chief_nursing", id_chief_nursing)
       .single();
 
     if (error) throw error;

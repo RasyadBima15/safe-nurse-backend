@@ -24,7 +24,8 @@ export async function getVerifikatorById(req, res) {
       .select(`
         *,
         users(email)
-        `)
+      `)
+      .eq("id_verifikator", id_verifikator)
       .single();
 
     if (error) throw error;

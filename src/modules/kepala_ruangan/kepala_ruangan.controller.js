@@ -13,9 +13,9 @@ export async function getKepalaRuangan(req, res) {
 
 export async function getKepalaRuanganById(req, res) {
   try {
-    const { id_ruangan } = req.params;
+    const { id_kepala_ruangan } = req.params;
 
-    if (!id_ruangan) {
+    if (!id_kepala_ruangan) {
       return res.status(400).json({ error: "Id kepala ruangan wajib diisi" });
     }
 
@@ -26,7 +26,7 @@ export async function getKepalaRuanganById(req, res) {
         ruangan(nama_ruangan),
         users(email)
         `)
-      .eq("id_ruangan", id_ruangan)
+      .eq("id_kepala_ruangan", id_kepala_ruangan)
       .single();
 
     if (error) throw error;

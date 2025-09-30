@@ -13,23 +13,35 @@ export async function getAdmin(req, res) {
 
 export async function getAdminById(req, res) {
   try {
-    const { id_user } = req.params;
+    const { id_user } = req.user;
 
     if (!id_user) {
       return res.status(400).json({ error: "Id user wajib diisi" });
     }
 
-    const { data, error } = await supabase
+    // Ambil email dari users
+    const { data: user, error: userError } = await supabase
       .from("users")
-      .select(`
-        email
-        `)
+      .select("email")
       .eq("id_user", id_user)
       .single();
 
-    if (error) throw error;
+    if (userError) throw userError;
 
-    res.json(data);
+    // Ambil nama_super_admin dari tabel super_admin
+    const { data: admin, error: adminError } = await supabase
+      .from("super_admin")
+      .select("nama_super_admin")
+      .eq("id_user", id_user)
+      .single();
+
+    if (adminError) throw adminError;
+
+    res.json({
+      id_user,
+      email: user.email,
+      nama_super_admin: admin?.nama_super_admin || "-"
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

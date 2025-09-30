@@ -28,7 +28,7 @@ export async function sendTokenThroughEmail(req, res) {
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const id = nanoid();
 
     const { error: resetError } = await supabase
