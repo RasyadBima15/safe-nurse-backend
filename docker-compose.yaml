@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  safenurse-backend:
+    container_name: safenurse_backend_container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    restart: always

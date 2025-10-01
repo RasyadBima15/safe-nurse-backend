@@ -3,78 +3,152 @@ import { supabase } from '../../config/db.js';
 export async function getUsers(req, res) {
   try {
     const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id_user, email, role');
+      .from("users")
+      .select("id_user, email, role");
 
     if (usersError) throw usersError;
 
-    const result = await Promise.all(users.map(async user => {
-      let nama = "-";
-      let nama_ruangan = "-";
+    const result = await Promise.all(
+      users.map(async (user) => {
+        let nama = "-";
+        let id_ruangan = null;
+        let nama_ruangan = "-";
+        let jabatan = "-";
+        let no_telp = "-";
+        let unit_kerja = "-";
 
-      if (user.role === "perawat") {
-        const { data: p } = await supabase
-          .from('perawat')
-          .select('nama_perawat, id_ruangan')
-          .eq('id_user', user.id_user)
-          .single();
-        nama = p?.nama_perawat || "-";
-
-        if (p?.id_ruangan) {
-          const { data: r } = await supabase
-            .from('ruangan')
-            .select('nama_ruangan')
-            .eq('id_ruangan', p.id_ruangan)
+        // === PERAWAT ===
+        if (user.role === "perawat") {
+          const { data: p } = await supabase
+            .from("perawat")
+            .select("nama_perawat, id_ruangan")
+            .eq("id_user", user.id_user)
             .single();
-          nama_ruangan = r?.nama_ruangan || "-";
-        }
-      } else if (user.role === "kepala_ruangan") {
-        const { data: k } = await supabase
-          .from('kepala_ruangan')
-          .select('nama_kepala_ruangan, id_ruangan')
-          .eq('id_user', user.id_user)
-          .single();
-        nama = k?.nama_kepala_ruangan || "-";
 
-        if (k?.id_ruangan) {
-          const { data: r } = await supabase
-            .from('ruangan')
-            .select('nama_ruangan')
-            .eq('id_ruangan', k.id_ruangan)
+          nama = p?.nama_perawat || "-";
+          id_ruangan = p?.id_ruangan || null;
+
+          if (id_ruangan) {
+            const { data: r } = await supabase
+              .from("ruangan")
+              .select("nama_ruangan")
+              .eq("id_ruangan", id_ruangan)
+              .single();
+            nama_ruangan = r?.nama_ruangan || "-";
+          }
+
+          return {
+            id_user: user.id_user,
+            email: user.email,
+            role: user.role,
+            nama,
+            id_ruangan,
+            nama_ruangan,
+          };
+        }
+
+        // === KEPALA RUANGAN ===
+        if (user.role === "kepala_ruangan") {
+          const { data: k } = await supabase
+            .from("kepala_ruangan")
+            .select("nama_kepala_ruangan, id_ruangan, jabatan, no_telp")
+            .eq("id_user", user.id_user)
             .single();
-          nama_ruangan = r?.nama_ruangan || "-";
-        }
-      } else if (user.role === "chief_nursing") {
-        const { data: c } = await supabase
-          .from('chief_nursing')
-          .select('nama_chief_nursing')
-          .eq('id_user', user.id_user)
-          .single();
-        nama = c?.nama_chief_nursing || "-";
-      } else if (user.role === "verifikator") {
-        const { data: v } = await supabase
-          .from('verifikator')
-          .select('nama_verifikator')
-          .eq('id_user', user.id_user)
-          .single();
-        nama = v?.nama_verifikator || "-";
-      } else if (user.role === "super_admin") {
-        const { data: v } = await supabase
-          .from('super_admin')
-          .select('nama_super_admin')
-          .eq('id_user', user.id_user)
-          .single();
-        nama = v?.nama_super_admin || "-";
-      }
 
-      return {
-        id_user: user.id_user,
-        email: user.email,
-        role: user.role,
-        nama,
-        nama_ruangan
-      };
-    }));
+          nama = k?.nama_kepala_ruangan || "-";
+          id_ruangan = k?.id_ruangan || null;
+          jabatan = k?.jabatan || "-";
+          no_telp = k?.no_telp || "-";
+
+          if (id_ruangan) {
+            const { data: r } = await supabase
+              .from("ruangan")
+              .select("nama_ruangan")
+              .eq("id_ruangan", id_ruangan)
+              .single();
+            nama_ruangan = r?.nama_ruangan || "-";
+          }
+
+          return {
+            id_user: user.id_user,
+            email: user.email,
+            role: user.role,
+            nama,
+            id_ruangan,
+            nama_ruangan,
+            jabatan,
+            no_telp,
+          };
+        }
+
+        // === CHIEF NURSING (tanpa ruangan) ===
+        if (user.role === "chief_nursing") {
+          const { data: c } = await supabase
+            .from("chief_nursing")
+            .select("nama_chief_nursing, jabatan, no_telp")
+            .eq("id_user", user.id_user)
+            .single();
+
+          nama = c?.nama_chief_nursing || "-";
+          jabatan = c?.jabatan || "-";
+          no_telp = c?.no_telp || "-";
+
+          return {
+            id_user: user.id_user,
+            email: user.email,
+            role: user.role,
+            nama,
+            jabatan,
+            no_telp,
+          };
+        }
+
+        // === VERIFIKATOR ===
+        if (user.role === "verifikator") {
+          const { data: v } = await supabase
+            .from("verifikator")
+            .select("nama_verifikator, unit_kerja, jabatan, no_telp")
+            .eq("id_user", user.id_user)
+            .single();
+
+          nama = v?.nama_verifikator || "-";
+          unit_kerja = v?.unit_kerja || "-";
+          jabatan = v?.jabatan || "-";
+          no_telp = v?.no_telp || "-";
+
+          return {
+            id_user: user.id_user,
+            email: user.email,
+            role: user.role,
+            nama,
+            unit_kerja,
+            jabatan,
+            no_telp,
+          };
+        }
+
+        // === SUPER ADMIN ===
+        if (user.role === "super_admin") {
+          const { data: s } = await supabase
+            .from("super_admin")
+            .select("nama_super_admin")
+            .eq("id_user", user.id_user)
+            .single();
+
+          nama = s?.nama_super_admin || "-";
+
+          return {
+            id_user: user.id_user,
+            email: user.email,
+            role: user.role,
+            nama,
+          };
+        }
+
+        // fallback
+        return user;
+      })
+    );
 
     res.json(result);
   } catch (error) {
