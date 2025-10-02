@@ -726,7 +726,7 @@ export async function cleanLaporanUsingLLM(req, res) {
 
 export async function validateChronology(req, res) {
     // 1. Ambil data 'chronology' dari body request
-    const { chronology } = req.body;
+    const { chronology, judul_insiden } = req.body;
 
     // 2. Validasi input: pastikan 'chronology' tidak kosong
     if (!chronology || chronology.trim() === '') {
@@ -736,10 +736,17 @@ export async function validateChronology(req, res) {
         });
     }
 
+    // Validasi input: pastikan 'judul_insiden' tidak kosong
+    if (!judul_insiden || judul_insiden.trim() === '') {
+        return res.status(400).json({ 
+            message: 'Input "judul_insiden" tidak boleh kosong.' 
+        });
+    }
+
     try {
         // 3. Panggil fungsi yang sudah kita buat sebelumnya
         //    Gunakan 'await' karena fungsi ini bersifat asynchronous
-        const result = await validateChronologyAPI(chronology);
+        const result = await validateChronologyAPI(chronology, judul_insiden);
 
         // 4. Kirim respon sukses (200 OK) ke client
         //    'result.data' berisi objek JSON hasil validasi dari Gemini

@@ -5,34 +5,44 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function validateChronologyAPI(chronologyText) {
+export async function validateChronologyAPI(chronologyText, judul_insiden) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY tidak ditemukan di environment variables.");
   }
 
   const systemPrompt = `
-    Anda adalah auditor klinis sekaligus ahli manajemen risiko insiden di rumah sakit. 
+  Anda adalah auditor klinis sekaligus ahli manajemen risiko insiden di rumah sakit. 
 
-    Fokus utama Anda: menilai apakah kronologi insiden yang ditulis staf sudah lengkap sesuai standar pelaporan.
+  Tugas Anda: menilai apakah kronologi insiden yang ditulis staf sudah lengkap dan jelas, **dengan mempertimbangkan konteks yang tersedia dalam kronologi**, berdasarkan judul insiden ini: ${judul_insiden}.
 
-    Aturan kelengkapan:
-    1. Informasi wajib: "Siapa", "Apa", "Kapan", "Di mana", "Bagaimana".
-    2. Informasi Opsional: "Mengapa" (jika tidak ada, tetap dianggap lengkap).
+  Standar kelengkapan kronologi:
+  1. Informasi Wajib:
+    - "Siapa" → siapa yang terlibat
+    - "Apa" → tindakan atau kejadian yang terjadi
+    - "Kapan" → tanggal & waktu kejadian
+    - "Di mana" → lokasi kejadian
+    - "Bagaimana" → alur kejadian atau mekanisme. **Jika kronologi sudah cukup menjelaskan alur kejadian atau tindakan utama, anggap lengkap, meskipun tidak dijelaskan penyebab rinci.**
+  2. Informasi Opsional:
+    - "Mengapa" → alasan/kondisi yang menyebabkan insiden (jika tersedia)
 
-    Output HARUS format JSON:
-    {
+  **Catatan penting:** 
+  - Evaluasi harus menilai **konteks kronologi yang tersedia**.
+  - Jangan menilai kronologi tidak lengkap hanya karena “Bagaimana” tidak dijelaskan rinci, selama alur kejadian jelas.
+  - Gunakan bahasa profesional, netral, dan jelas.
+
+  Output HARUS dalam format JSON:
+  {
     "is_lengkap": boolean,
     "evaluasi": string,
     "poin_yang_hilang": string[]
-    }
+  }
 
-    Instruksi evaluasi:
-    - "poin_yang_hilang": tuliskan poin apa saja yang hilang/tidak jelas.
-    - "evaluasi": jelaskan informasi yang hilang + alasannya.
-    - Jika semua lengkap → evaluasi: "Kronologi insiden lengkap."
-    - Informasi opsional "Mengapa" hanya disebutkan bila tersedia, tidak mempengaruhi kelengkapan.
-    - Gunakan bahasa yang jelas, profesional, dan tidak menghakimi.
-    `;
+  Instruksi evaluasi:
+  - "poin_yang_hilang": sebutkan poin wajib yang hilang/tidak jelas.
+  - "evaluasi": jelaskan secara singkat mengapa kronologi dianggap lengkap atau tidak lengkap.
+  - Jika semua lengkap → evaluasi: "Kronologi insiden lengkap."
+  - Informasi opsional "Mengapa" hanya disebutkan bila tersedia, tidak mempengaruhi kelengkapan.
+`;
 
 
   const userPrompt = `Tolong validasi kronologi insiden berikut yang dilaporkan oleh seorang perawat:\n"${chronologyText}"`;
