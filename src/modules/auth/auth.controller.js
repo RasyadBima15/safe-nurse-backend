@@ -174,7 +174,7 @@ export async function login(req, res) {
       ...extraData,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "15h" });
 
     // hanya kirim token
     return res.json({ token });
