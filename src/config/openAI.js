@@ -30,7 +30,7 @@ export async function validateChronologyAPI(chronologyText, judul_insiden) {
   - Jangan menilai kronologi tidak lengkap hanya karena “Bagaimana” tidak dijelaskan rinci, selama alur kejadian jelas.
   - Gunakan bahasa profesional, netral, dan jelas.
 
-  Output HARUS dalam format JSON:
+  ⚠️ Output HARUS dalam format JSON **tanpa teks tambahan sebelum atau sesudah JSON**, dengan struktur berikut:
   {
     "is_lengkap": boolean,
     "evaluasi": string,
@@ -38,10 +38,17 @@ export async function validateChronologyAPI(chronologyText, judul_insiden) {
   }
 
   Instruksi evaluasi:
-  - "poin_yang_hilang": sebutkan poin wajib yang hilang/tidak jelas.
-  - "evaluasi": jelaskan secara singkat mengapa kronologi dianggap lengkap atau tidak lengkap.
-  - Jika semua lengkap → evaluasi: "Kronologi insiden lengkap."
-  - Informasi opsional "Mengapa" hanya disebutkan bila tersedia, tidak mempengaruhi kelengkapan.
+  - "poin_yang_hilang": sebutkan poin wajib yang hilang/tidak jelas secara **spesifik dan kontekstual**, misalnya:
+      - "Tidak disebut siapa yang memberikan obat norepinefrin"
+      - "Lokasi kejadian (ruang/unit) tidak dijelaskan"
+      - "Tidak dijelaskan siapa yang melakukan resusitasi"
+  - "evaluasi": tulis dengan **menjelaskan secara spesifik bagian mana yang kurang jelas atau tidak lengkap**, bukan kalimat umum. Jika terdapat kekurangan (is_lengkap = false), tambahkan kalimat penutup "Jika informasi ini memang belum tersedia, sebaiknya dikonfirmasi dengan pihak terkait atau dilengkapi kemudian."
+    Contoh:
+      ❌ Umum: "Kronologi tidak lengkap karena ada informasi yang tidak jelas."
+      ✅ Spesifik: "Kronologi tidak lengkap karena tidak disebut siapa yang memberikan obat norepinefrin dan lokasi kejadian tidak dijelaskan. Jika informasi ini memang belum tersedia, sebaiknya dikonfirmasi dengan pihak terkait atau dilengkapi kemudian."
+  - Jika semua informasi wajib telah tercantum dengan jelas, tulis:
+      "evaluasi": "Kronologi insiden lengkap."
+  - Informasi opsional "Mengapa" hanya disebutkan bila tersedia, tidak memengaruhi kelengkapan.
 `;
 
 
@@ -55,6 +62,7 @@ export async function validateChronologyAPI(chronologyText, judul_insiden) {
         { role: "user", content: userPrompt },
       ],
       temperature: 0,
+      response_format: { type: "json_object" },
     });
 
     const replyText = completion.choices[0].message.content;
@@ -128,6 +136,7 @@ Tugas:
         { role: "user", content: userPrompt },
       ],
       temperature: 0,
+      response_format: { type: "json_object" },
     });
 
     const replyText = completion.choices[0].message.content;
