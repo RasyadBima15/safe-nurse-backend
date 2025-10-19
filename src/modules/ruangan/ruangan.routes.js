@@ -4,7 +4,7 @@ import { authenticateToken, authorizeRoles } from '../../middleware/auth.js';
 
 const router = Router();
 
-router.get('/', authenticateToken, authorizeRoles("super_admin"), getRuangan);
+router.get('/', authenticateToken, authorizeRoles("super_admin", "verifikator"), getRuangan);
 router.post('/register-ruangan', authenticateToken, authorizeRoles("super_admin"), registerRuangan);
 router.put('/update/:id_ruangan', authenticateToken, authorizeRoles("super_admin"), updateRuangan);
 router.delete('/delete/:id_ruangan', authenticateToken, authorizeRoles("super_admin"), deleteRuangan);
