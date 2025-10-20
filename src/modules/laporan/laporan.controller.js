@@ -807,6 +807,12 @@ export async function generateLaporan(req, res) {
         const tgl_insiden = body.tgl_insiden ? parseTanggal(body.tgl_insiden) : null;
         const tgl_msk_rs = body.tgl_msk_rs ? parseTanggalDateOnly(body.tgl_msk_rs) : null;
 
+        for (const [key, value] of Object.entries(body)) {
+          if (typeof value === "string" && value.length > 100) {
+            console.warn(`⚠️ Field "${key}" memiliki panjang ${value.length} karakter (lebih dari 100)`);
+          }
+        }
+
         const { data: laporan, error: insertError } = await supabase
             .from("laporan")
             .insert([{
