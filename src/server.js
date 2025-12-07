@@ -1,4 +1,5 @@
 import app from './app.js';
+import './cron/notifikasiLaporanOverdue.js'
 
 const PORT = process.env.PORT
 
