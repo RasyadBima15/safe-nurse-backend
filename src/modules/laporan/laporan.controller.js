@@ -819,6 +819,17 @@ export async function generateLaporan(req, res) {
           }
         }
 
+        // Tentukan status berdasarkan aturan
+        const kategoriValidator = ["KPC", "KNC", "KTC"];
+        let status = "diteruskan ke verifikator"; // default
+
+        if (
+          ["biru", "hijau"].includes(grading) &&
+          kategoriValidator.includes(body.kategori)
+        ) {
+          status = "diteruskan ke validator";
+        }
+
         const { data: laporan, error: insertError } = await supabase
             .from("laporan")
             .insert([{
@@ -831,7 +842,7 @@ export async function generateLaporan(req, res) {
                 skor_grading,
                 grading,
                 rekomendasi_tindakan,
-                status: "diteruskan ke validator",
+                status,
                 id_perawat,
                 id_ruangan
             }])
