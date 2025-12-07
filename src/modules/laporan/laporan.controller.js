@@ -53,7 +53,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // 4. Ambil semua history aksi + role user
     const { data: allHistoryAksi } = await supabase
       .from("history_aksi")
-      .select("kategori, grading, kronologi, created_at, users(role)")
+      .select("kategori, grading, kronologi, implementasi, hasil, rencana_tindak_lanjut, created_at, users(role)")
       .eq("kode_laporan", kode_laporan)
       .order("created_at", { ascending: false });
 
@@ -118,13 +118,19 @@ export async function getLaporanByIdLaporan(req, res) {
         kategori: latestKepala?.kategori || "-",
         grading: latestKepala?.grading || "-",
         kronologi: latestKepala?.kronologi || "-",
-        catatan: latestCatatanKepala?.catatan || "-"
+        catatan: latestCatatanKepala?.catatan || "-",
+        implementasi: latestKepala?.implementasi || "-",
+        hasil: latestKepala?.hasil || "-",
+        rencana_tindak_lanjut: latestKepala?.rencana_tindak_lanjut || "-"
         },
         validasi_chief_nursing: {
         kategori: latestChief?.kategori || "-",
         grading: latestChief?.grading || "-",
         kronologi: latestChief?.kronologi || "-",
-        catatan: latestCatatanChief?.catatan || "-"
+        catatan: latestCatatanChief?.catatan || "-",
+        implementasi: latestChief?.implementasi || "-",
+        hasil: latestChief?.hasil || "-",
+        rencana_tindak_lanjut: latestChief?.rencana_tindak_lanjut || "-"
         }
     };
     }
@@ -382,8 +388,8 @@ export async function getAllLaporanForVerifikator(req, res) {
 
         // --- Ambil history catatan terbaru per role ---
         const { data: allHistoryCatatan } = await supabase
-          .from("history_catatan")
-          .select("catatan, created_at, users(role)")
+          .from("history_aksi")
+          .select("rencana_tindak_lanjut, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .order("created_at", { ascending: false });
 
@@ -396,9 +402,9 @@ export async function getAllLaporanForVerifikator(req, res) {
           kategori: override.kategori || "-",
           grading: override.grading || "-",
           kronologi: override.kronologi || "-",
-          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
-          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
-          catatan_verifikator: latestCatatanVerif?.catatan || "-",
+          rencana_tindak_lanjut_kepala_ruangan: latestCatatanKepala?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_chief_nursing: latestCatatanChief?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_verifikator: latestCatatanVerif?.rencana_tindak_lanjut || "-",
           tindak_lanjut: tindak_lanjut
         };
       })
@@ -1034,14 +1040,16 @@ export async function rejectLaporan(req, res) {
 export async function approveLaporan(req, res) {
   try {
     const { kode_laporan } = req.params;
-    const { catatan } = req.body
+    const { implementasi, hasil, rencana_tindak_lanjut } = req.body;
     const { role, id_user } = req.user;
     if (!kode_laporan) {
       return res.status(400).json({ message: "Kode Laporan wajib diisi" });
     }
 
-    if (!catatan || catatan.trim() === "") {
-      return res.status(400).json({ message: "Catatan wajib diisi saat menyetujui laporan" });
+    if (!implementasi || !hasil || !rencana_tindak_lanjut) {
+      return res.status(400).json({
+        message: "Minimal salah satu dari implementasi, hasil, atau rencana tindak lanjut wajib diisi."
+      });
     }
 
     const { data: laporanData, error: laporanError } = await supabase
@@ -1107,27 +1115,22 @@ export async function approveLaporan(req, res) {
 
     // 📝 Insert history_aksi
     const { error: aksiError } = await supabase.from("history_aksi").insert([
-    {
+      {
         id_aksi: nanoid(),
         id_user,
         kode_laporan,
         aksi: "validasi",
         kategori: laporanUpdate.kategori,
         grading: laporanUpdate.grading,
-        rekomendasi_tindakan: laporanUpdate.rekomendasi_tindakan
-    }
+        kronologi: laporanUpdate.kronologi,
+
+        // kolom baru:
+        implementasi,
+        hasil,
+        rencana_tindak_lanjut
+      }
     ]);
     if (aksiError) throw new Error(`Gagal insert history_aksi: ${aksiError.message}`);
-
-    // Simpan catatan ke history_catatan
-    const catatanInsert = {
-      id_catatan: nanoid(),
-      kode_laporan,
-      id_user,
-      catatan,
-    };
-    const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
-    if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
 
     // 🔔 Kirim notifikasi
     const notifikasi = [];
@@ -1155,7 +1158,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user: laporanUpdate.perawat.id_user,
-            message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
+            message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
         });
 
         if (verifikatorList?.length) {
@@ -1163,7 +1166,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
                 });
             });
         }
@@ -1173,7 +1176,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh kepala ruangan.`,
                 });
             });
         }
@@ -1182,7 +1185,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
         });
 
         //kirimkan notifikasi ke WA verifikator dan chief nursing
@@ -1202,12 +1205,12 @@ export async function approveLaporan(req, res) {
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
+                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
             },
             {
                 id_notifikasi: nanoid(),
                 id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
+                message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
             }
         );
 
@@ -1216,7 +1219,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator. Catatan dari Verifikator: ${catatan}`,
+                    message: `Laporan dengan kode ${kode_laporan} telah disetujui oleh verifikator.`,
                 });
             });
         }
@@ -1225,7 +1228,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
         });
 
     } else if (role === "chief_nursing") {
@@ -1243,7 +1246,7 @@ export async function approveLaporan(req, res) {
                 notifikasi.push({
                     id_notifikasi: nanoid(),
                     id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing. Catatan dari Chief Nursing: ${catatan}`,
+                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
                 });
             });
         }
@@ -1252,7 +1255,7 @@ export async function approveLaporan(req, res) {
         notifikasi.push({
             id_notifikasi: nanoid(),
             id_user,
-            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
+            message: `Anda berhasil menyetujui laporan dengan kode ${kode_laporan}.`,
         });
 
         //kirimkan notifikasi ke WA verifikator
