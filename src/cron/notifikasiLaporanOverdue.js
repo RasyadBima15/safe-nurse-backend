@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { supabase } from "../config/db.js";
 import { nanoid } from "nanoid";
+import { transporter, emailTemplates } from "../config/email.js";
 
 async function cekLaporanTerlambat() {
   console.log("⏳ Mengecek status laporan...");
@@ -130,6 +131,37 @@ async function kirimNotifikasi(message, idRuanganLaporan) {
   );
 
   console.log(`📨 Notifikasi dikirim ke ${idUsers.length} user`);
+
+  const link_kepala_ruangan = `${process.env.FRONTEND_URL}/laporan-masuk-kepala-ruangan`;
+  const link_chief_nursing = `${process.env.FRONTEND_URL}/laporan-masuk-chiefnursing`;
+
+  for (const u of idUsers) {
+    if (!u.email) continue;
+
+    try {
+      const link =
+      u.role === "kepala_ruangan"
+        ? link_kepala_ruangan
+        : link_chief_nursing;
+
+      const emailContent = emailTemplates.notifikasi(
+        kode_laporan,
+        link,
+        u.role // chief_nursing atau kepala_ruangan
+      );
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: u.email,
+        subject: emailContent.subject,
+        html: emailContent.html,
+      });
+
+      console.log(`📧 Email notifikasi terkirim ke ${u.email}`);
+    } catch (err) {
+      console.error("❌ Gagal mengirim email:", err);
+    }
+  }
 }
 
 // Cron berjalan setiap 10 menit
