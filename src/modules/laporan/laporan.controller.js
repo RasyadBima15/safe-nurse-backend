@@ -31,7 +31,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // 2. Ambil history aksi user ini
     const { data: historyAksi, error: aksiError } = await supabase
       .from("history_aksi")
-      .select("id_aksi, aksi, kategori, grading, rekomendasi_tindakan, created_at")
+      .select("id_aksi, aksi, kategori, grading, kronologi, created_at")
       .eq("kode_laporan", kode_laporan)
       .eq("id_user", id_user)
       .order("created_at", { ascending: false })
@@ -53,7 +53,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // 4. Ambil semua history aksi + role user
     const { data: allHistoryAksi } = await supabase
       .from("history_aksi")
-      .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+      .select("kategori, grading, kronologi, created_at, users(role)")
       .eq("kode_laporan", kode_laporan)
       .order("created_at", { ascending: false });
 
@@ -77,16 +77,16 @@ export async function getLaporanByIdLaporan(req, res) {
     const markUpdated = (obj) => ({
       kategori: obj?.kategori ? obj.kategori + " (Updated)" : laporan.kategori,
       grading: obj?.grading ? obj.grading + " (Updated)" : laporan.grading,
-      rekomendasi_tindakan: obj?.rekomendasi_tindakan
-        ? obj.rekomendasi_tindakan + " (Updated)"
-        : laporan.rekomendasi_tindakan
+      kronologi: obj?.kronologi
+        ? obj.kronologi + " (Updated)"
+        : laporan.kronologi
     });
 
-    // 5. Tentukan nilai kategori, grading, rekomendasi_tindakan berdasarkan role
+    // 5. Tentukan nilai kategori, grading, kronologi berdasarkan role
     let override = {
       kategori: laporan.kategori,
       grading: laporan.grading,
-      rekomendasi_tindakan: laporan.rekomendasi_tindakan
+      kronologi: laporan.kronologi
     };
 
     if (role === "kepala_ruangan") {
@@ -108,7 +108,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // Apply override ke laporan dengan fallback "-"
     laporan.kategori = override.kategori || "-";
     laporan.grading = override.grading || "-";
-    laporan.rekomendasi_tindakan = override.rekomendasi_tindakan || "-";
+    laporan.kronologi = override.kronologi || "-";
 
     // 6. Siapkan extra validasi khusus untuk verifikator
     let extraValidasi = {};
@@ -117,13 +117,13 @@ export async function getLaporanByIdLaporan(req, res) {
         validasi_kepala_ruangan: {
         kategori: latestKepala?.kategori || "-",
         grading: latestKepala?.grading || "-",
-        rekomendasi_tindakan: latestKepala?.rekomendasi_tindakan || "-",
+        kronologi: latestKepala?.kronologi || "-",
         catatan: latestCatatanKepala?.catatan || "-"
         },
         validasi_chief_nursing: {
         kategori: latestChief?.kategori || "-",
         grading: latestChief?.grading || "-",
-        rekomendasi_tindakan: latestChief?.rekomendasi_tindakan || "-",
+        kronologi: latestChief?.kronologi || "-",
         catatan: latestCatatanChief?.catatan || "-"
         }
     };
@@ -242,7 +242,7 @@ export async function getLaporanForChiefNursing(req, res) {
         let override = {
           kategori: laporan.kategori || "-",
           grading: laporan.grading || "-",
-          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+          kronologi: laporan.kronologi || "-"
         };
 
         // --- Ambil history aksi terbaru dari user sendiri ---
@@ -259,7 +259,7 @@ export async function getLaporanForChiefNursing(req, res) {
         // --- Ambil history aksi terbaru dari kepala_ruangan, chief nursing, verifikator ---
         const { data: allHistoryAksi } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .select("kategori, grading, kronologi, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .in("users.role", ["kepala_ruangan", "verifikator", "chief_nursing"])
           .order("created_at", { ascending: false });
@@ -276,8 +276,8 @@ export async function getLaporanForChiefNursing(req, res) {
           if (selected) {
             override.kategori = selected.kategori || override.kategori;
             override.grading = selected.grading || override.grading;
-            override.rekomendasi_tindakan =
-              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              selected.kronologi || override.kronologi;
           }
         }
 
@@ -296,7 +296,7 @@ export async function getLaporanForChiefNursing(req, res) {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
-          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          kronologi: override.kronologi || "-",
           catatan_kepala_ruangan: latestKepala?.catatan || "-",
           catatan_chief_nursing: latestChief?.catatan || "-",
           catatan_verifikator: latestVerif?.catatan || "-",
@@ -341,7 +341,7 @@ export async function getAllLaporanForVerifikator(req, res) {
         let override = {
           kategori: laporan.kategori || "-",
           grading: laporan.grading || "-",
-          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+          kronologi: laporan.kronologi || "-"
         };
 
         // --- Ambil history aksi terbaru dari user sendiri ---
@@ -358,7 +358,7 @@ export async function getAllLaporanForVerifikator(req, res) {
         // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
         const { data: allHistoryAksi } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .select("kategori, grading, kronologi, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .in("users.role", ["kepala_ruangan", "verifikator"])
           .order("created_at", { ascending: false });
@@ -375,8 +375,8 @@ export async function getAllLaporanForVerifikator(req, res) {
           if (selected) {
             override.kategori = selected.kategori || override.kategori;
             override.grading = selected.grading || override.grading;
-            override.rekomendasi_tindakan =
-              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              selected.kronologi || override.kronologi;
           }
         }
 
@@ -395,7 +395,7 @@ export async function getAllLaporanForVerifikator(req, res) {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
-          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          kronologi: override.kronologi || "-",
           catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
           catatan_chief_nursing: latestCatatanChief?.catatan || "-",
           catatan_verifikator: latestCatatanVerif?.catatan || "-",
@@ -436,13 +436,13 @@ export async function getAllLaporanForAdmin(req, res) {
         let override = {
           kategori: laporan.kategori || "-",
           grading: laporan.grading || "-",
-          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+          kronologi: laporan.kronologi || "-"
         };
 
         // --- Ambil history aksi terbaru untuk kepala_ruangan & verifikator
         const { data: allHistoryAksi } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .select("kategori, grading, kronologi, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .in("users.role", ["kepala_ruangan", "verifikator"])
           .order("created_at", { ascending: false });
@@ -454,14 +454,14 @@ export async function getAllLaporanForAdmin(req, res) {
           if (latestKepala) {
             override.kategori = latestKepala.kategori || override.kategori;
             override.grading = latestKepala.grading || override.grading;
-            override.rekomendasi_tindakan =
-              latestKepala.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              latestKepala.kronologi || override.kronologi;
           }
           if (latestVerif) {
             override.kategori = latestVerif.kategori || override.kategori;
             override.grading = latestVerif.grading || override.grading;
-            override.rekomendasi_tindakan =
-              latestVerif.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              latestVerif.kronologi || override.kronologi;
           }
         }
 
@@ -481,7 +481,7 @@ export async function getAllLaporanForAdmin(req, res) {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
-          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          kronologi: override.kronologi || "-",
           catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
           catatan_chief_nursing: latestCatatanChief?.catatan || "-",
           catatan_verifikator: latestCatatanVerif?.catatan || "-"
@@ -528,13 +528,13 @@ export async function getLaporanForPerawat(req, res) {
         let override = {
           kategori: laporan.kategori || "-",
           grading: laporan.grading || "-",
-          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+          kronologi: laporan.kronologi || "-"
         };
 
         // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
         const { data: allHistoryAksi } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .select("kategori, grading, kronologi, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .in("users.role", ["kepala_ruangan", "verifikator"])
           .order("created_at", { ascending: false });
@@ -551,8 +551,8 @@ export async function getLaporanForPerawat(req, res) {
           if (selected) {
             override.kategori = selected.kategori || override.kategori;
             override.grading = selected.grading || override.grading;
-            override.rekomendasi_tindakan =
-              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              selected.kronologi || override.kronologi;
           }
         }
 
@@ -571,7 +571,7 @@ export async function getLaporanForPerawat(req, res) {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
-          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          kronologi: override.kronologi || "-",
           catatan_kepala_ruangan: latestKepala?.catatan || "-",
           catatan_chief_nursing: latestChief?.catatan || "-",
           catatan_verifikator: latestVerif?.catatan || "-"
@@ -617,7 +617,7 @@ export async function getLaporanForKepalaRuangan(req, res) {
         let override = {
           kategori: laporan.kategori || "-",
           grading: laporan.grading || "-",
-          rekomendasi_tindakan: laporan.rekomendasi_tindakan || "-"
+          kronologi: laporan.kronologi || "-"
         };
 
         // --- Ambil history aksi terbaru dari user sendiri ---
@@ -634,7 +634,7 @@ export async function getLaporanForKepalaRuangan(req, res) {
         // --- Ambil history aksi terbaru dari kepala_ruangan & verifikator ---
         const { data: allHistoryAksi } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, rekomendasi_tindakan, created_at, users(role)")
+          .select("kategori, grading, kronologi, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .in("users.role", ["kepala_ruangan", "verifikator"])
           .order("created_at", { ascending: false });
@@ -651,8 +651,8 @@ export async function getLaporanForKepalaRuangan(req, res) {
           if (selected) {
             override.kategori = selected.kategori || override.kategori;
             override.grading = selected.grading || override.grading;
-            override.rekomendasi_tindakan =
-              selected.rekomendasi_tindakan || override.rekomendasi_tindakan;
+            override.kronologi =
+              selected.kronologi || override.kronologi;
           }
         }
 
@@ -671,7 +671,7 @@ export async function getLaporanForKepalaRuangan(req, res) {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
-          rekomendasi_tindakan: override.rekomendasi_tindakan || "-",
+          kronologi: override.kronologi || "-",
           catatan_kepala_ruangan: latestKepala?.catatan || "-",
           catatan_chief_nursing: latestChief?.catatan || "-",
           catatan_verifikator: latestVerif?.catatan || "-",
@@ -1333,23 +1333,23 @@ export async function approveLaporan(req, res) {
 }
 
 export async function revisiLaporan(req, res) {
-    try {
-        const { kode_laporan } = req.params;
-        const { kategori, grading, rekomendasi_tindakan, catatan } = req.body;
-        const { role, id_user } = req.user;
+  try {
+    const { kode_laporan } = req.params;
+    const { kategori, grading, kronologi, catatan } = req.body;
+    const { role, id_user } = req.user;
 
-        if (!kode_laporan) {
-            return res.status(400).json({ message: "Kode Laporan wajib diisi" });
-        }
-        if (!role) {
-            return res.status(400).json({ message: "Role wajib diisi" });
-        }
-        if (!kategori || !grading || !rekomendasi_tindakan || !catatan || catatan.trim() === "") {
-            return res.status(400).json({
-                message: "Kategori, grading, rekomendasi_tindakan, dan catatan wajib diisi",
-            });
-        }
+    // Validasi utama
+    if (!kode_laporan) {
+      return res.status(400).json({ message: "Kode Laporan wajib diisi" });
+    }
+    if (!role) {
+      return res.status(400).json({ message: "Role wajib diisi" });
+    }
+    if (!catatan || catatan.trim() === "") {
+      return res.status(400).json({ message: "Catatan wajib diisi" });
+    }
 
+    // Ambil data laporan
     const { data: laporanData, error: laporanError } = await supabase
       .from("laporan")
       .select(`
@@ -1365,36 +1365,37 @@ export async function revisiLaporan(req, res) {
       return res.status(404).json({ message: "Laporan tidak ditemukan" });
     }
 
-    // 🔎 Validasi status sesuai role
+    // Validasi status berdasarkan role
     if (role === "kepala_ruangan" && laporanData.status === "laporan disetujui verifikator") {
       return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh kepala_ruangan" });
     }
 
-    if (role === "chief_nursing" &&
-        ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)) {
+    if (
+      role === "chief_nursing" &&
+      ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)
+    ) {
       return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh chief_nursing" });
     }
 
     if (
-    role === "verifikator" &&
-    !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
+      role === "verifikator" &&
+      !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"]
+        .includes(laporanData.status)
     ) {
-    return res.status(400).json({
+      return res.status(400).json({
         message: "Status laporan tidak valid untuk direvisi oleh verifikator",
-    });
+      });
     }
 
-
+    // Tentukan status baru
     let newStatus = null;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator") newStatus = "laporan disetujui verifikator";
-    if (role === "chief_nursing") {
-      if (laporanData.status !== "laporan disetujui verifikator") {
-        newStatus = "laporan disetujui chief nursing";
-      }
+    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+      newStatus = "laporan disetujui chief nursing";
     }
 
-    // ✅ Update laporan (status only, kecuali chief_nursing)
+    // Update status jika diperlukan
     let laporanUpdate = laporanData;
 
     if (newStatus) {
@@ -1413,232 +1414,81 @@ export async function revisiLaporan(req, res) {
       laporanUpdate = data;
     }
 
-    // 📝 Insert history_aksi
+    // Insert history_aksi (kategori, grading, kronologi boleh kosong)
     const { error: aksiError } = await supabase.from("history_aksi").insert([
-    {
+      {
         id_aksi: nanoid(),
         id_user,
         kode_laporan,
         aksi: "revisi",
-        kategori: kategori,
-        grading: grading,
-        rekomendasi_tindakan: rekomendasi_tindakan
-    }
+        kategori: kategori || null,
+        grading: grading || null,
+        kronologi: kronologi || null
+      }
     ]);
     if (aksiError) throw new Error(`Gagal insert history_aksi: ${aksiError.message}`);
 
-    // Simpan catatan ke history_catatan
-    const catatanInsert = {
-      id_catatan: nanoid(),
-      kode_laporan,
-      id_user,
-      catatan,
-    };
-    const { error: catatanError } = await supabase.from("history_catatan").insert([catatanInsert]);
+    // Insert catatan wajib
+    const { error: catatanError } = await supabase.from("history_catatan").insert([
+      {
+        id_catatan: nanoid(),
+        kode_laporan,
+        id_user,
+        catatan,
+      }
+    ]);
+
     if (catatanError) throw new Error(`Gagal insert history_catatan: ${catatanError.message}`);
 
-    // 🔔 Kirim notifikasi
+    // ======================================================
+    // ============  NOTIFIKASI (tidak diubah)  =============
+    // ======================================================
+
     const notifikasi = [];
 
-    // Notifikasi umum
     if (role === "kepala_ruangan") {
-    const { data: verifikatorList, error: verifikatorError } = await supabase
-        .from("users")
-        .select("id_user")
-        .eq("role", "verifikator");
+      const { data: verifikatorList } = await supabase.from("users").select("id_user").eq("role", "verifikator");
+      const { data: chiefNursingList } = await supabase.from("users").select("id_user").eq("role", "chief_nursing");
 
-    if (verifikatorError) {
-        throw new Error(`Gagal ambil daftar verifikator: ${verifikatorError.message}`);
-    }
-
-    const { data: chiefNursingList, error: chiefNursingError } = await supabase
-        .from("users")
-        .select("id_user")
-        .eq("role", "chief_nursing");
-
-    if (chiefNursingError) {
-        throw new Error(`Gagal ambil daftar Chief Nursing: ${chiefNursingError.message}`);
-    }
-
-    // Kepala ruangan → perawat
-    notifikasi.push({
+      // Perawat
+      notifikasi.push({
         id_notifikasi: nanoid(),
         id_user: laporanUpdate.perawat.id_user,
-        message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
-    });
+        message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
+      });
 
-    if (verifikatorList?.length) {
-        verifikatorList.forEach((v) => {
-            notifikasi.push({
-                id_notifikasi: nanoid(),
-                id_user: v.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
-            });
-        });
-    }
-
-    if (chiefNursingList?.length) {
-        chiefNursingList.forEach((c) => {
-            notifikasi.push({
-                id_notifikasi: nanoid(),
-                id_user: c.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan dari Kepala Ruangan: ${catatan}`,
-            });
-        });
-    }
-
-    // ✅ Notifikasi ke dirinya sendiri
-    notifikasi.push({
-        id_notifikasi: nanoid(),
-        id_user,
-        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
-    });
-
-    //kirimkan notifikasi WA ke verifikator dan chief nursing
-
-    } else if (role === "verifikator") {
-        const { data: chiefNursingList, error: chiefNursingError } = await supabase
-            .from("users")
-            .select("id_user")
-            .eq("role", "chief_nursing");
-
-        if (chiefNursingError) {
-            throw new Error(`Gagal ambil daftar Chief Nursing: ${chiefNursingError.message}`);
-        }
-
-        // Verifikator → perawat & kepala ruangan
-        notifikasi.push(
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.perawat.id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
-            },
-            {
-                id_notifikasi: nanoid(),
-                id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-                message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
-            }
-        );
-
-        if (chiefNursingList?.length) {
-            chiefNursingList.forEach((c) => {
-                notifikasi.push({
-                    id_notifikasi: nanoid(),
-                    id_user: c.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan dari Verifikator: ${catatan}`,
-                });
-            });
-        }
-
-        // ✅ Notifikasi ke dirinya sendiri
+      // Verifikator
+      verifikatorList?.forEach(v =>
         notifikasi.push({
-            id_notifikasi: nanoid(),
-            id_user,
-            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
-        });
+          id_notifikasi: nanoid(),
+          id_user: v.id_user,
+          message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
+        })
+      );
 
-    } else if (role === "chief_nursing") {
-        const { data: verifikatorList, error: verifikatorError } = await supabase
-            .from("users")
-            .select("id_user")
-            .eq("role", "verifikator");
-
-        if (verifikatorError) {
-            throw new Error(`Gagal ambil daftar verifikator: ${verifikatorError.message}`);
-        }
-
-        if (verifikatorList?.length) {
-            verifikatorList.forEach((v) => {
-                notifikasi.push({
-                    id_notifikasi: nanoid(),
-                    id_user: v.id_user,
-                    message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing. Catatan dari Chief Nursing: ${catatan}`,
-                });
-            });
-        }
-
-        // ✅ Notifikasi ke dirinya sendiri
+      // Chief Nursing
+      chiefNursingList?.forEach(c =>
         notifikasi.push({
-            id_notifikasi: nanoid(),
-            id_user,
-            message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}. Catatan: ${catatan}`,
-        });
-
-        //kirimkan notifikasi WA ke verifikator
+          id_notifikasi: nanoid(),
+          id_user: c.id_user,
+          message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
+        })
+      );
     }
 
+    // Insert semua notifikasi
     if (notifikasi.length > 0) {
-    const { error: notifError } = await supabase
-        .from("notifikasi")
-        .insert(notifikasi);
-
-    if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
-    }
-
-    // Tambahkan notifikasi Email sesuai role
-    const link = `${process.env.FRONTEND_URL}`;
-
-    if (role === 'kepala_ruangan') {
-      // kepala_ruangan -> verifikator & chief nursing
-      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
-      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
-
-      [...(verifikatorList || []), ...(chiefNursingList || [])].forEach(async (u) => {
-        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "kepala_ruangan");
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: u.email,
-          subject: emailContent.subject,
-          html: emailContent.html,
-        });
-      });
-
-    } else if (role === 'chief_nursing') {
-      // chief_nursing -> verifikator
-      const { data: verifikatorList } = await supabase.from("users").select("email").eq("role", "verifikator");
-
-      (verifikatorList || []).forEach(async (u) => {
-        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "chief_nursing");
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: u.email,
-          subject: emailContent.subject,
-          html: emailContent.html,
-        });
-      });
-
-    } else if (role === 'verifikator') {
-      // verifikator -> kepala ruangan & chief nursing
-      const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
-      let kepalaEmail = null;
-      if (kepalaId) {
-        const { data: kepalaUser } = await supabase.from("users").select("email").eq("id_user", kepalaId).maybeSingle();
-        kepalaEmail = kepalaUser?.email;
-      }
-
-      const { data: chiefNursingList } = await supabase.from("users").select("email").eq("role", "chief_nursing");
-
-      const targets = [];
-      if (kepalaEmail) targets.push({ email: kepalaEmail });
-      targets.push(...(chiefNursingList || []));
-
-      targets.forEach(async (u) => {
-        const emailContent = emailTemplates.notifikasi(kode_laporan, link, "verifikator");
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: u.email,
-          subject: emailContent.subject,
-          html: emailContent.html,
-        });
-      });
+      const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
+      if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
     }
 
     return res.status(200).json({
       message: "Laporan berhasil di-revisi"
     });
-        
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 }
+
 
