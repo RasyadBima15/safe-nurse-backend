@@ -167,7 +167,60 @@ export const emailTemplates = {
       </div>
     `
     };
-  }
+  },
+  alert: (kodeLaporan, link, role, tipe = "24") => {
+    const judul =
+      tipe === "24"
+        ? "⚠️ Peringatan 1×24 Jam"
+        : "🚨 Peringatan Keterlambatan 2×24 Jam";
+
+    const warnaHeader = tipe === "24" ? "#F59E0B" : "#DC2626";  
+    const warnaButton = tipe === "24" ? "#F59E0B" : "#DC2626";
+
+    const pesan =
+      tipe === "24"
+        ? `Laporan dengan kode <strong>${kodeLaporan}</strong> tersisa <strong>1×24 jam</strong> lagi untuk divalidasi. Harap segera lakukan validasi.`
+        : `Laporan dengan kode <strong>${kodeLaporan}</strong> telah terlambat divalidasi lebih dari <strong>2×24 jam</strong>. Mohon segera ditindaklanjuti.`;
+
+    const roleDisplay =
+      role === "kepala_ruangan" ? "Kepala Ruangan" : "Chief Nursing";
+
+    return {
+      subject: `${judul} - SAFE-Nurse`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${warnaHeader}; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">SAFE-Nurse</h1>
+            <p style="margin: 10px 0 0 0;">${judul}</p>
+          </div>
+
+          <div style="padding: 30px; background-color: #f9fafb;">
+            <h2 style="color: #1f2937; margin-bottom: 20px;">📢 ${roleDisplay}</h2>
+
+            <p style="color: #4b5563; line-height: 1.6; margin-bottom: 20px;">
+              ${pesan}
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${link}" 
+                style="background-color: ${warnaButton}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Lihat Laporan
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; text-align: center;">
+              Link alternatif:<br>
+              <span style="color: ${warnaButton}; word-break: break-all;">${link}</span>
+            </p>
+          </div>
+
+          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+            <p style="margin: 0;">© 2025 SAFE-Nurse. Semua hak dilindungi.</p>
+          </div>
+        </div>
+      `
+    };
+  },
 };
 
 // export default { transporter, emailTemplates };

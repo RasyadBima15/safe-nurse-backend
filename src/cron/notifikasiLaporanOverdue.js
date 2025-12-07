@@ -59,7 +59,7 @@ async function cekLaporanTerlambat() {
         .limit(1);
 
       if (!exists || exists.length === 0) {
-        await kirimNotifikasi(notifMsg, l.id_ruangan);
+        await kirimNotifikasi(notifMsg, l.id_ruangan, l.kode_laporan);
         console.log(`⚠️ Notifikasi 1×24 jam dikirim untuk ${l.kode_laporan}`);
       }
     }
@@ -76,7 +76,7 @@ async function cekLaporanTerlambat() {
         .limit(1);
 
       if (!exists || exists.length === 0) {
-        await kirimNotifikasi(notifMsg, l.id_ruangan);
+        await kirimNotifikasi(notifMsg, l.id_ruangan, l.kode_laporan);
         console.log(`🚨 Notifikasi keterlambatan dikirim untuk ${l.kode_laporan}`);
       }
     }
@@ -86,68 +86,69 @@ async function cekLaporanTerlambat() {
 // ===================================================================
 // 🔥 Fungsi Kirim Notifikasi → chief_nursing & kepala ruangan (by id_ruangan)
 // ===================================================================
-async function kirimNotifikasi(message, idRuanganLaporan) {
-  // Ambil user chief_nursing
-  const { data: chiefList, error: e1 } = await supabase
+async function kirimNotifikasi(message, idRuanganLaporan, kode_laporan) {
+  // Ambil semua chief nursing
+  const { data: chiefList } = await supabase
     .from("users")
     .select("id_user")
     .eq("role", "chief_nursing");
 
-  if (e1) {
-    console.error("Gagal fetch chief nursing:", e1);
-    return;
-  }
-
-  // Ambil kepala ruangan dengan id_ruangan yang sama
-  const { data: kepalaList, error: e2 } = await supabase
+  // Ambil kepala ruangan
+  const { data: kepalaList } = await supabase
     .from("kepala_ruangan")
     .select("id_user")
     .eq("id_ruangan", idRuanganLaporan);
 
-  if (e2) {
-    console.error("Gagal fetch kepala ruangan:", e2);
-    return;
-  }
-
-  // Gabungkan penerima
-  const idUsers = [
-    ...chiefList.map(u => u.id_user),
-    ...kepalaList.map(u => u.id_user)
+  // Gabungkan semua penerima
+  const allUserIds = [
+    ...chiefList.map(c => c.id_user),
+    ...kepalaList.map(k => k.id_user)
   ];
 
-  if (idUsers.length === 0) {
-    console.warn("⚠️ Tidak ada penerima notifikasi (tidak ada chief/kepala ruangan).");
+  if (allUserIds.length === 0) {
+    console.warn("⚠️ Tidak ada penerima notifikasi");
     return;
   }
 
-  // Insert notifikasi
+  // Insert notifikasi ke semua user
   await supabase.from("notifikasi").insert(
-    idUsers.map(uid => ({
+    allUserIds.map(uid => ({
       id_notifikasi: nanoid(),
       id_user: uid,
       message,
-      status: "belum_dibaca"
+      status: "belum_dibaca",
     }))
   );
 
-  console.log(`📨 Notifikasi dikirim ke ${idUsers.length} user`);
+  console.log(`📨 Notifikasi berhasil disimpan untuk ${allUserIds.length} user`);
 
+  // 🔥 AMBIL EMAIL + ROLE DARI TABLE USERS
+  const { data: userData } = await supabase
+    .from("users")
+    .select("id_user, email, role")
+    .in("id_user", allUserIds);
+
+  // Siapkan link
   const link_kepala_ruangan = `${process.env.FRONTEND_URL}/laporan-masuk-kepala-ruangan`;
   const link_chief_nursing = `${process.env.FRONTEND_URL}/laporan-masuk-chiefnursing`;
 
-  for (const u of idUsers) {
+  // Loop kirim email
+  for (const u of userData) {
     if (!u.email) continue;
 
-    try {
-      const link =
+    const link =
       u.role === "kepala_ruangan"
         ? link_kepala_ruangan
         : link_chief_nursing;
 
-      const emailContent = emailTemplates.notifikasi(
+    const tipeAlert = message.includes("1×24") ? "24" : "48";
+
+    try {
+      const emailContent = emailTemplates.alert(
         kode_laporan,
         link,
-        u.role // chief_nursing atau kepala_ruangan
+        u.role,
+        tipeAlert
       );
 
       await transporter.sendMail({
