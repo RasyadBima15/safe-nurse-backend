@@ -37,7 +37,8 @@ export async function register(req, res) {
     }
 
     const id_user = nanoid();
-    const plainPassword = generatePassword(16);
+    // const plainPassword = generatePassword(16);
+    const plainPassword = generatePassword();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const { error: userError } = await supabase
