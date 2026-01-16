@@ -17,8 +17,12 @@ export async function register(req, res) {
       return res.status(400).json({ message: "Role tidak valid" });
     }
 
-    if (['perawat', 'kepala_ruangan'].includes(role) && !id_ruangan) {
-      return res.status(400).json({ message: "id_ruangan wajib diisi untuk role " + role });
+    if (role === 'perawat' && !id_ruangan) {
+      return res.status(400).json({ message: "id_ruangan wajib untuk perawat" });
+    }
+
+    if (role === 'kepala_ruangan' && (!id_ruangan || id_ruangan.length === 0)) {
+      return res.status(400).json({ message: "Minimal 1 ruangan wajib diisi untuk kepala ruangan" });
     }
 
     if (['kepala_ruangan', 'chief_nursing', 'verifikator'].includes(role) && !no_telp) {
@@ -58,11 +62,17 @@ export async function register(req, res) {
       await supabase.from("kepala_ruangan").insert([{
         id_kepala_ruangan: nanoid(),
         id_user,
-        id_ruangan,
         nama_kepala_ruangan: nama,
         no_telp,
         jabatan
       }]);
+
+      const ruanganIds = Array.isArray(id_ruangan) ? id_ruangan : [id_ruangan];
+
+      await supabase
+        .from("ruangan")
+        .update({ id_kepala_ruangan })
+        .in("id_ruangan", ruanganIds);
 
     } else if (role === "chief_nursing") {
       await supabase.from("chief_nursing").insert([{
@@ -145,13 +155,28 @@ export async function login(req, res) {
         .eq("id_user", user.id_user)
         .maybeSingle();
       extraData = { ...perawat };
-    } else if (user.role === "kepala_ruangan") {
-      const { data: kepala } = await supabase
-        .from("kepala_ruangan")
-        .select("id_kepala_ruangan, id_ruangan")
-        .eq("id_user", user.id_user)
-        .maybeSingle();
-      extraData = { ...kepala };
+    }  else if (user.role === "kepala_ruangan") {
+        // ambil kepala ruangan
+        const { data: kepala } = await supabase
+          .from("kepala_ruangan")
+          .select("id_kepala_ruangan")
+          .eq("id_user", user.id_user)
+          .maybeSingle();
+
+        if (!kepala) {
+          return res.status(404).json({ message: "Data kepala ruangan tidak ditemukan" });
+        }
+
+        // ambil semua ruangan yang dia pegang
+        const { data: ruangan } = await supabase
+          .from("ruangan")
+          .select("id_ruangan, nama_ruangan")
+          .eq("id_kepala_ruangan", kepala.id_kepala_ruangan);
+
+        extraData = {
+          id_kepala_ruangan: kepala.id_kepala_ruangan,
+          ruangan
+        };
     } else if (user.role === "chief_nursing") {
       const { data: chief } = await supabase
         .from("chief_nursing")

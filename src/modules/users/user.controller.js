@@ -47,37 +47,32 @@ export async function getUsers(req, res) {
           };
         }
 
-        // === KEPALA RUANGAN ===
         if (user.role === "kepala_ruangan") {
-          const { data: k } = await supabase
+          // 1. Ambil data kepala ruangan
+          const { data: k, error: kepalaError } = await supabase
             .from("kepala_ruangan")
-            .select("nama_kepala_ruangan, id_ruangan, jabatan, no_telp")
+            .select("id_kepala_ruangan, nama_kepala_ruangan, jabatan, no_telp")
             .eq("id_user", user.id_user)
-            .single();
+            .maybeSingle();
 
-          nama = k?.nama_kepala_ruangan || "-";
-          id_ruangan = k?.id_ruangan || null;
-          jabatan = k?.jabatan || "-";
-          no_telp = k?.no_telp || "-";
-
-          if (id_ruangan) {
-            const { data: r } = await supabase
-              .from("ruangan")
-              .select("nama_ruangan")
-              .eq("id_ruangan", id_ruangan)
-              .single();
-            nama_ruangan = r?.nama_ruangan || "-";
+          if (kepalaError || !k) {
+            return null; // atau throw error sesuai kebutuhan
           }
+
+          // 2. Ambil semua ruangan yang ditangani
+          const { data: ruanganList } = await supabase
+            .from("ruangan")
+            .select("id_ruangan, nama_ruangan")
+            .eq("id_kepala_ruangan", k.id_kepala_ruangan);
 
           return {
             id_user: user.id_user,
             email: user.email,
             role: user.role,
-            nama,
-            id_ruangan,
-            nama_ruangan,
-            jabatan,
-            no_telp,
+            nama: k.nama_kepala_ruangan || "-",
+            ruangan: ruanganList || [], // ARRAY
+            jabatan: k.jabatan || "-",
+            no_telp: k.no_telp || "-"
           };
         }
 

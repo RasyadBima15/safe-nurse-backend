@@ -152,7 +152,7 @@ export async function getLaporanByIdLaporan(req, res) {
 
 export async function getLaporanMasuk(req, res) {
   try {
-    const { role, id_ruangan } = req.user; // dari middleware
+    const { role, ruangan } = req.user; // dari middleware
 
     let query = supabase
       .from("laporan")
@@ -164,9 +164,11 @@ export async function getLaporanMasuk(req, res) {
       `);
 
     if (role === "kepala_ruangan") {
+      const ruanganIds = ruangan.map(r => r.id_ruangan);
+
       query = query
         .eq("status", "diteruskan ke validator")
-        .eq("id_ruangan", id_ruangan);
+        .in("id_ruangan", ruanganIds);
     } else if (role === "chief_nursing") {
       query = query.eq("status", "diteruskan ke verifikator");
     } else if (role === "verifikator") {
@@ -596,12 +598,15 @@ export async function getLaporanForPerawat(req, res) {
 
 export async function getLaporanForKepalaRuangan(req, res) {
   try {
-    const { id_ruangan, id_user } = req.user;
-    if (!id_ruangan) {
-      return res.status(400).json({ message: "ID Ruangan wajib diisi" });
+    const { ruangan } = req.user; // array ruangan
+
+    if (!ruangan || ruangan.length === 0) {
+      return res.status(400).json({ message: "Kepala ruangan belum memiliki ruangan" });
     }
 
-    // Ambil semua laporan berdasarkan ruangan
+    const ruanganIds = ruangan.map(r => r.id_ruangan);
+
+    // Ambil semua laporan dari semua ruangan yang ditangani
     const { data: laporanList, error: laporanError } = await supabase
       .from("laporan")
       .select(`
@@ -609,7 +614,7 @@ export async function getLaporanForKepalaRuangan(req, res) {
         perawat(nama_perawat),
         ruangan(nama_ruangan)
       `)
-      .eq("id_ruangan", id_ruangan)
+      .in("id_ruangan", ruanganIds)
       .order("tgl_waktu_pelaporan", { ascending: false });
 
     if (laporanError) throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
