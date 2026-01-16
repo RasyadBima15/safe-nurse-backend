@@ -203,12 +203,46 @@ export async function updateUser(req, res) {
       if (error) throw error;
 
     } else if (role === "kepala_ruangan") {
-      const { error } = await supabase
+      const { data: profile, error: fetchError } = await supabase
         .from("kepala_ruangan")
-        .update({ nama_kepala_ruangan: nama, id_ruangan, jabatan, no_telp })
-        .eq("id_user", id_user);
-      if (error) throw error;
+        .select("id_kepala_ruangan")
+        .eq("id_user", id_user)
+        .single();
 
+      if (fetchError || !profile) {
+        throw new Error("Profil Kepala Ruangan tidak ditemukan");
+      }
+
+      const idKR = profile.id_kepala_ruangan;
+
+      const { error: krError } = await supabase
+        .from("kepala_ruangan")
+        .update({ 
+          nama_kepala_ruangan: nama, 
+          jabatan, 
+          no_telp 
+        })
+        .eq("id_user", id_user);
+
+      if (krError) throw krError;
+
+      const { error: resetError } = await supabase
+        .from("ruangan")
+        .update({ id_kepala_ruangan: null })
+        .eq("id_kepala_ruangan", idKR);
+
+      if (resetError) throw resetError;
+
+      const ruanganIds = Array.isArray(id_ruangan) ? id_ruangan : [id_ruangan];
+      
+      if (ruanganIds.length > 0) {
+        const { error: roomUpdateError } = await supabase
+          .from("ruangan")
+          .update({ id_kepala_ruangan: idKR })
+          .in("id_ruangan", ruanganIds);
+
+        if (roomUpdateError) throw roomUpdateError;
+      }
     } else if (role === "chief_nursing") {
       const { error } = await supabase
         .from("chief_nursing")
