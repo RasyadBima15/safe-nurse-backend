@@ -598,7 +598,7 @@ export async function getLaporanForPerawat(req, res) {
 
 export async function getLaporanForKepalaRuangan(req, res) {
   try {
-    const { ruangan } = req.user; // array ruangan
+    const { id_user, ruangan } = req.user; // array ruangan
 
     if (!ruangan || ruangan.length === 0) {
       return res.status(400).json({ message: "Kepala ruangan belum memiliki ruangan" });

@@ -19,21 +19,38 @@ export async function getKepalaRuanganById(req, res) {
       return res.status(400).json({ error: "Id kepala ruangan wajib diisi" });
     }
 
-    const { data, error } = await supabase
+    // 1. Ambil data kepala ruangan + user
+    const { data: kepala, error: kepalaError } = await supabase
       .from("kepala_ruangan")
       .select(`
-        *,
-        ruangan(nama_ruangan),
+        id_kepala_ruangan,
+        nama_kepala_ruangan,
+        jabatan,
+        no_telp,
         users(email)
-        `)
+      `)
       .eq("id_kepala_ruangan", id_kepala_ruangan)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (kepalaError || !kepala) {
+      return res.status(404).json({ error: "Kepala ruangan tidak ditemukan" });
+    }
 
-    res.json(data);
+    // 2. Ambil semua ruangan yang ditangani
+    const { data: ruangan, error: ruanganError } = await supabase
+      .from("ruangan")
+      .select("id_ruangan, nama_ruangan")
+      .eq("id_kepala_ruangan", id_kepala_ruangan);
+
+    if (ruanganError) throw ruanganError;
+
+    return res.json({
+      ...kepala,
+      ruangan: ruangan || []
+    });
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
 
