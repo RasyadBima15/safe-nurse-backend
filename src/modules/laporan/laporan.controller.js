@@ -152,7 +152,7 @@ export async function getLaporanByIdLaporan(req, res) {
 
 export async function getLaporanMasuk(req, res) {
   try {
-    const { role, ruangan } = req.user; // dari middleware
+    const { role, ruangan, id_user } = req.user; // dari middleware
 
     let query = supabase
       .from("laporan")
@@ -170,13 +170,17 @@ export async function getLaporanMasuk(req, res) {
         .eq("status", "diteruskan ke validator")
         .in("id_ruangan", ruanganIds);
     } else if (role === "chief_nursing") {
-      query = query.eq("status", "diteruskan ke verifikator")
-       .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      query = query.eq("status", "diteruskan ke verifikator");
+      if (id_user === "e_6JYm7ada_WjdnbB1zJV") {
+          query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      }
     } else if (role === "verifikator") {
       query = query.or(
         'status.eq.diteruskan ke verifikator,status.eq.laporan disetujui chief nursing'
-      )
-       .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      );
+      if (id_user === "w6U5pPSyatpBbjbGzQuzY") {
+        query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      }
     } else {
       return res.status(403).json({ message: "Role tidak diizinkan" });
     }
@@ -237,8 +241,11 @@ export async function getLaporanForChiefNursing(req, res) {
         perawat:id_perawat(nama_perawat),
         ruangan:id_ruangan(nama_ruangan)
       `)
-      .order("tgl_waktu_pelaporan", { ascending: false })
-      .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      .order("tgl_waktu_pelaporan", { ascending: false });
+
+    if (id_user === "e_6JYm7ada_WjdnbB1zJV") {
+        query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+    }
 
     if (laporanError) {
       throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
@@ -337,8 +344,11 @@ export async function getAllLaporanForVerifikator(req, res) {
         perawat:id_perawat(id_perawat, nama_perawat),
         ruangan:id_ruangan(id_ruangan, nama_ruangan)
       `)
-      .order("tgl_waktu_pelaporan", { ascending: false })
-      .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      .order("tgl_waktu_pelaporan", { ascending: false });
+    
+      if (id_user === "w6U5pPSyatpBbjbGzQuzY") {
+        query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
+      }
 
     if (laporanError) {
       throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
@@ -888,21 +898,23 @@ export async function generateLaporan(req, res) {
         }
 
         // Notif ke semua Chief Nursing & Verifikator
-        usersData
+        if (id_perawat !== "oVteW89a6AIVOvFtyt3iV") {
+          usersData
             .filter((u) => ["chief_nursing", "verifikator"].includes(u.role))
             .forEach((u) => {
-                notifikasi.push({
-                    id_notifikasi: nanoid(),
-                    id_user: u.id_user,
-                    message: `Ada laporan baru dengan kode ${kode_laporan}.`,
-                });
+              notifikasi.push({
+                id_notifikasi: nanoid(),
+                id_user: u.id_user,
+                message: `Ada laporan baru dengan kode ${kode_laporan}.`,
+              });
             });
 
-        // Simpan semua notifikasi
-        const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
+          // Simpan semua notifikasi
+          const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
 
-        if (notifError) {
-            return res.status(500).json({ error: notifError.message });
+          if (notifError) {
+              return res.status(500).json({ error: notifError.message });
+          }
         }
 
         //tambahkan notifikasi Email ke kepala ruangan
