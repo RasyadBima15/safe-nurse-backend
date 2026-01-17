@@ -170,11 +170,13 @@ export async function getLaporanMasuk(req, res) {
         .eq("status", "diteruskan ke validator")
         .in("id_ruangan", ruanganIds);
     } else if (role === "chief_nursing") {
-      query = query.eq("status", "diteruskan ke verifikator");
+      query = query.eq("status", "diteruskan ke verifikator")
+       .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
     } else if (role === "verifikator") {
       query = query.or(
         'status.eq.diteruskan ke verifikator,status.eq.laporan disetujui chief nursing'
-      );
+      )
+       .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
     } else {
       return res.status(403).json({ message: "Role tidak diizinkan" });
     }
@@ -235,7 +237,8 @@ export async function getLaporanForChiefNursing(req, res) {
         perawat:id_perawat(nama_perawat),
         ruangan:id_ruangan(nama_ruangan)
       `)
-      .order("tgl_waktu_pelaporan", { ascending: false });
+      .order("tgl_waktu_pelaporan", { ascending: false })
+      .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
 
     if (laporanError) {
       throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
@@ -334,7 +337,8 @@ export async function getAllLaporanForVerifikator(req, res) {
         perawat:id_perawat(id_perawat, nama_perawat),
         ruangan:id_ruangan(id_ruangan, nama_ruangan)
       `)
-      .order("tgl_waktu_pelaporan", { ascending: false });
+      .order("tgl_waktu_pelaporan", { ascending: false })
+      .neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
 
     if (laporanError) {
       throw new Error(`Gagal mengambil data laporan: ${laporanError.message}`);
