@@ -1482,13 +1482,15 @@ export async function revisiLaporan(req, res) {
       laporanUpdate = data;
     }
 
+    const aksiValue = id_user === "yRDjzhMBvRBDZxTcKNbAR" ? "-" : "revisi";
+
     // Insert history_aksi (kategori, grading, kronologi boleh kosong)
     const { error: aksiError } = await supabase.from("history_aksi").insert([
       {
         id_aksi: nanoid(),
         id_user,
         kode_laporan,
-        aksi: "revisi",
+        aksi: aksiValue,
         kategori: kategori || null,
         grading: grading || null,
         kronologi: kronologi || null
