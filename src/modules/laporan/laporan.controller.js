@@ -53,7 +53,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // 4. Ambil semua history aksi + role user
     const { data: allHistoryAksi } = await supabase
       .from("history_aksi")
-      .select("kategori, grading, kronologi, implementasi, hasil, rencana_tindak_lanjut, created_at, users(role)")
+      .select("kategori, grading, kronologi, implementasi, id_user, hasil, rencana_tindak_lanjut, created_at, users(role)")
       .eq("kode_laporan", kode_laporan)
       .order("created_at", { ascending: false });
 
@@ -74,13 +74,31 @@ export async function getLaporanByIdLaporan(req, res) {
     // const latestCatatanVerifikator = allHistoryCatatan?.find(h => h.users?.role === "verifikator");
 
     // Helper kasih label "updated"
-    const markUpdated = (obj) => ({
-      kategori: obj?.kategori ? obj.kategori + " (Updated)" : laporan.kategori,
-      grading: obj?.grading ? obj.grading + " (Updated)" : laporan.grading,
-      kronologi: obj?.kronologi
-        ? obj.kronologi + " (Updated)"
-        : laporan.kronologi
-    });
+    const EXCLUDED_USER_ID = "yRDjzhMBvRBDZxTcKNbAR";
+
+    const markUpdated = (obj) => {
+      // jika history dari user tertentu → jangan kasih "(Updated)"
+      if (obj?.id_user === EXCLUDED_USER_ID) {
+        return {
+          kategori: obj?.kategori ?? laporan.kategori,
+          grading: obj?.grading ?? laporan.grading,
+          kronologi: obj?.kronologi ?? laporan.kronologi
+        };
+      }
+
+      return {
+        kategori: obj?.kategori
+          ? obj.kategori + " (Updated)"
+          : laporan.kategori,
+        grading: obj?.grading
+          ? obj.grading + " (Updated)"
+          : laporan.grading,
+        kronologi: obj?.kronologi
+          ? obj.kronologi + " (Updated)"
+          : laporan.kronologi
+      };
+    };
+
 
     // 5. Tentukan nilai kategori, grading, kronologi berdasarkan role
     let override = {
