@@ -178,7 +178,7 @@ export async function getLaporanMasuk(req, res) {
       query = query.or(
         'status.eq.diteruskan ke verifikator,status.eq.laporan disetujui chief nursing'
       );
-      if (id_user === "w6U5pPSyatpBbjbGzQuzY") {
+      if (id_user === "w6U5pPSyatpBbjbGzQuzY" || id_user === "yRDjzhMBvRBDZxTcKNbAR") {
         query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
       }
     } else {
@@ -350,7 +350,7 @@ export async function getAllLaporanForVerifikator(req, res) {
       .order("tgl_waktu_pelaporan", { ascending: false });
 
     // Kondisi khusus
-    if (id_user === "w6U5pPSyatpBbjbGzQuzY") {
+    if (id_user === "w6U5pPSyatpBbjbGzQuzY" || id_user === "yRDjzhMBvRBDZxTcKNbAR") {
       query = query.neq("id_perawat", "oVteW89a6AIVOvFtyt3iV");
     }
 
@@ -1147,9 +1147,14 @@ export async function approveLaporan(req, res) {
     });
     }
 
-    let newStatus = null;
+    let newStatus = laporanData.status;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
-    if (role === "verifikator") newStatus = "laporan disetujui verifikator";
+    if (
+      role === "verifikator" &&
+      id_user !== "yRDjzhMBvRBDZxTcKNbAR"
+    ) {
+      newStatus = "laporan disetujui verifikator";
+    }
     if (role === "chief_nursing") {
       if (laporanData.status !== "laporan disetujui verifikator") {
         newStatus = "laporan disetujui chief nursing";
