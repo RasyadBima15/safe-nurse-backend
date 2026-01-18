@@ -87,81 +87,109 @@ async function cekLaporanTerlambat() {
 // 🔥 Fungsi Kirim Notifikasi → chief_nursing & kepala ruangan (by id_ruangan)
 // ===================================================================
 async function kirimNotifikasi(message, idRuanganLaporan, kode_laporan) {
-  // Ambil semua chief nursing
-  const { data: chiefList } = await supabase
-    .from("users")
-    .select("id_user")
-    .eq("role", "chief_nursing");
+  try {
+    // === Ambil chief nursing ===
+    const { data: chiefList, error: chiefError } = await supabase
+      .from("users")
+      .select("id_user")
+      .eq("role", "chief_nursing");
 
-  // Ambil kepala ruangan
-  const { data: kepalaList } = await supabase
-    .from("kepala_ruangan")
-    .select("id_user")
-    .eq("id_ruangan", idRuanganLaporan);
-
-  // Gabungkan semua penerima
-  const allUserIds = [
-    ...chiefList.map(c => c.id_user),
-    ...kepalaList.map(k => k.id_user)
-  ];
-
-  if (allUserIds.length === 0) {
-    console.warn("⚠️ Tidak ada penerima notifikasi");
-    return;
-  }
-
-  // Insert notifikasi ke semua user
-  await supabase.from("notifikasi").insert(
-    allUserIds.map(uid => ({
-      id_notifikasi: nanoid(),
-      id_user: uid,
-      message,
-      status: "belum_dibaca",
-    }))
-  );
-
-  console.log(`📨 Notifikasi berhasil disimpan untuk ${allUserIds.length} user`);
-
-  // 🔥 AMBIL EMAIL + ROLE DARI TABLE USERS
-  const { data: userData } = await supabase
-    .from("users")
-    .select("id_user, email, role")
-    .in("id_user", allUserIds);
-
-  // Siapkan link
-  const link_kepala_ruangan = `${process.env.FRONTEND_URL}/laporan-masuk-kepala-ruangan`;
-  const link_chief_nursing = `${process.env.FRONTEND_URL}/laporan-masuk-chiefnursing`;
-
-  // Loop kirim email
-  for (const u of userData) {
-    if (!u.email) continue;
-
-    const link =
-      u.role === "kepala_ruangan"
-        ? link_kepala_ruangan
-        : link_chief_nursing;
-
-    const tipeAlert = message.includes("1×24") ? "24" : "48";
-
-    try {
-      const emailContent = emailTemplates.alert(
-        kode_laporan,
-        link,
-        u.role,
-        tipeAlert
-      );
-
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: u.email,
-        subject: emailContent.subject,
-        html: emailContent.html,
-      });
-
-      console.log(`📧 Email notifikasi terkirim ke ${u.email}`);
-    } catch (err) {
-      console.error("❌ Gagal mengirim email:", err);
+    if (chiefError) {
+      console.error("❌ Error ambil chief nursing:", chiefError);
+      return;
     }
+
+    const safeChief = Array.isArray(chiefList) ? chiefList : [];
+
+    // === Ambil kepala ruangan lewat tabel ruangan ===
+    const { data: ruangan, error: ruangError } = await supabase
+      .from("ruangan")
+      .select("id_kepala_ruangan")
+      .eq("id_ruangan", idRuanganLaporan)
+      .single();
+
+    if (ruangError || !ruangan?.id_kepala_ruangan) {
+      console.warn("⚠️ Ruangan tidak punya kepala ruangan");
+    }
+
+    let kepalaUserIds = [];
+
+    if (ruangan?.id_kepala_ruangan) {
+      const { data: kepala, error: kepalaError } = await supabase
+        .from("kepala_ruangan")
+        .select("id_user")
+        .eq("id_kepala_ruangan", ruangan.id_kepala_ruangan)
+        .single();
+
+      if (!kepalaError && kepala?.id_user) {
+        kepalaUserIds.push(kepala.id_user);
+      }
+    }
+
+    const allUserIds = [
+      ...safeChief.map(c => c.id_user),
+      ...kepalaUserIds,
+    ];
+
+    if (allUserIds.length === 0) {
+      console.warn("⚠️ Tidak ada penerima notifikasi");
+      return;
+    }
+
+    // === Insert notifikasi ===
+    await supabase.from("notifikasi").insert(
+      allUserIds.map(uid => ({
+        id_notifikasi: nanoid(),
+        id_user: uid,
+        message,
+        status: "belum_dibaca",
+      }))
+    );
+
+    console.log(`📨 Notifikasi disimpan untuk ${allUserIds.length} user`);
+
+    // === Ambil email user ===
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id_user, email, role")
+      .in("id_user", allUserIds);
+
+    if (userError || !Array.isArray(userData)) {
+      console.error("❌ Gagal ambil data user:", userError);
+      return;
+    }
+
+    const linkKepala = `${process.env.FRONTEND_URL}/laporan-masuk-kepala-ruangan`;
+    const linkChief = `${process.env.FRONTEND_URL}/laporan-masuk-chiefnursing`;
+
+    for (const u of userData) {
+      if (!u.email) continue;
+
+      const link = u.role === "kepala_ruangan" ? linkKepala : linkChief;
+      const tipeAlert = message.includes("1×24") ? "24" : "48";
+
+      try {
+        const emailContent = emailTemplates.alert(
+          kode_laporan,
+          link,
+          u.role,
+          tipeAlert
+        );
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+
+        console.log(`📧 Email terkirim ke ${u.email}`);
+      } catch (mailErr) {
+        console.error("❌ Gagal kirim email:", mailErr);
+      }
+    }
+  } catch (err) {
+    console.error("🔥 Fatal error kirimNotifikasi:", err);
   }
 }
 
