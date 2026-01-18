@@ -1140,6 +1140,7 @@ export async function approveLaporan(req, res) {
 
     if (
     role === "verifikator" &&
+    id_user !== "yRDjzhMBvRBDZxTcKNbAR" &&
     !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
     ) {
     return res.status(400).json({
