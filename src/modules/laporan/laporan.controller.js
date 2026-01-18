@@ -1140,7 +1140,6 @@ export async function approveLaporan(req, res) {
 
     if (
     role === "verifikator" &&
-    id_user !== "yRDjzhMBvRBDZxTcKNbAR" &&
     !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
     ) {
     return res.status(400).json({
@@ -1150,10 +1149,7 @@ export async function approveLaporan(req, res) {
 
     let newStatus = laporanData.status;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
-    if (
-      role === "verifikator" &&
-      id_user !== "yRDjzhMBvRBDZxTcKNbAR"
-    ) {
+    if (role === "verifikator") {
       newStatus = "laporan disetujui verifikator";
     }
     if (role === "chief_nursing") {
@@ -1449,6 +1445,7 @@ export async function revisiLaporan(req, res) {
 
     if (
       role === "verifikator" &&
+      id_user !== "yRDjzhMBvRBDZxTcKNbAR" &&
       !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"]
         .includes(laporanData.status)
     ) {
@@ -1460,7 +1457,8 @@ export async function revisiLaporan(req, res) {
     // Tentukan status baru
     let newStatus = null;
     if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
-    if (role === "verifikator") newStatus = "laporan disetujui verifikator";
+    if (role === "verifikator" &&
+      id_user !== "yRDjzhMBvRBDZxTcKNbAR") newStatus = "laporan disetujui verifikator";
     if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
       newStatus = "laporan disetujui chief nursing";
     }
