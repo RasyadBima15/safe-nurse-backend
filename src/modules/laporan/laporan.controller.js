@@ -914,10 +914,10 @@ export async function generateLaporan(req, res) {
         });
 
         // Notif ke kepala ruangan (hanya 1 orang dari data ruangan)
-        if (ruangan?.kepala_ruangan[0]?.id_user) {
+        if (ruangan?.kepala_ruangan?.id_user) {
             notifikasi.push({
                 id_notifikasi: nanoid(),
-                id_user: ruangan.kepala_ruangan[0].id_user,
+                id_user: ruangan.kepala_ruangan.id_user,
                 message: `Ada laporan baru dengan kode ${kode_laporan} dari perawat di ruangan Anda.`,
             });
         }
@@ -974,18 +974,19 @@ export async function generateLaporan(req, res) {
 
         // ambil email kepala ruangan berdasarkan id_user
         let kepalaEmail = null;
-        if (ruangan?.kepala_ruangan[0]?.id_user) {
+
+        if (ruangan?.kepala_ruangan?.id_user) {
           const { data: kepalaUser, error: kepalaUserError } = await supabase
             .from("users")
             .select("email")
-            .eq("id_user", ruangan.kepala_ruangan[0].id_user)
+            .eq("id_user", ruangan.kepala_ruangan.id_user)
             .maybeSingle();
 
           if (kepalaUserError) {
             console.error("Gagal ambil email kepala ruangan:", kepalaUserError.message);
+          } else {
+            kepalaEmail = kepalaUser?.email;
           }
-
-          kepalaEmail = kepalaUser?.email;
         }
 
         if (kepalaEmail) {
