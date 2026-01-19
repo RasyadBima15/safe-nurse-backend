@@ -113,6 +113,92 @@ export const emailTemplates = {
       `
     };
   },
+  revisi: (kodeLaporan, catatan, link, role) => {
+    const subject = "Notifikasi Revisi Laporan - SAFE-Nurse";
+    let message = "";
+
+    switch (role) {
+      case "kepala_ruangan":
+        message = `
+          Laporan dengan kode <strong>${kodeLaporan}</strong> telah
+          <strong>direvisi oleh Kepala Ruangan</strong>.
+        `;
+        break;
+
+      case "verifikator":
+        message = `
+          Laporan dengan kode <strong>${kodeLaporan}</strong> telah
+          <strong>direvisi oleh Verifikator</strong>.
+        `;
+        break;
+
+      case "chief_nursing":
+        message = `
+          Laporan dengan kode <strong>${kodeLaporan}</strong> telah
+          <strong>direvisi oleh Chief Nursing</strong>.
+        `;
+        break;
+
+      default:
+        message = `
+          Laporan dengan kode <strong>${kodeLaporan}</strong> telah
+          <strong>direvisi</strong>.
+        `;
+    }
+
+    return {
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          
+          <div style="background-color: #f59e0b; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0;">SAFE-Nurse</h1>
+            <p style="margin: 10px 0 0 0;">Notifikasi Revisi Laporan</p>
+          </div>
+
+          <div style="padding: 30px; background-color: #f9fafb;">
+            <h2 style="color: #1f2937; margin-bottom: 20px;">✏️ Revisi Laporan</h2>
+
+            <p style="color: #4b5563; line-height: 1.6; margin-bottom: 16px;">
+              ${message}
+            </p>
+
+            ${
+              catatan
+                ? `
+                  <div style="background-color: #fff7ed; border-left: 4px solid #f59e0b; padding: 16px; margin-bottom: 24px;">
+                    <strong>Catatan Revisi:</strong>
+                    <p style="margin: 8px 0 0 0; color: #92400e;">
+                      ${catatan}
+                    </p>
+                  </div>
+                `
+                : ""
+            }
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${link}"
+                style="background-color: #f59e0b; color: white; padding: 12px 30px;
+                text-decoration: none; border-radius: 6px; display: inline-block;
+                font-weight: bold;">
+                Lihat Laporan
+              </a>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px; text-align: center;">
+              Atau buka link berikut:<br>
+              <span style="color: #f59e0b; word-break: break-all;">${link}</span>
+            </p>
+          </div>
+
+          <div style="background-color: #f3f4f6; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+            <p style="margin: 0;">© 2025 SAFE-Nurse. Semua hak dilindungi.</p>
+          </div>
+
+        </div>
+      `
+    };
+  },
   registerAccount: (email, plainPassword, role, loginLink) => {
   const displayRole = roleDisplayName[role] || role;
 

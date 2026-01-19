@@ -1533,42 +1533,229 @@ export async function revisiLaporan(req, res) {
     // ============  NOTIFIKASI (tidak diubah)  =============
     // ======================================================
 
+    // ================= INSERT NOTIFIKASI =================
     const notifikasi = [];
 
     if (role === "kepala_ruangan") {
-      const { data: verifikatorList } = await supabase.from("users").select("id_user").eq("role", "verifikator");
-      const { data: chiefNursingList } = await supabase.from("users").select("id_user").eq("role", "chief_nursing");
+      // ambil verifikator & chief nursing
+      const { data: verifikatorList, error: verifikatorError } = await supabase
+        .from("users")
+        .select("id_user")
+        .eq("role", "verifikator");
 
-      // Perawat
+      if (verifikatorError) {
+        throw new Error(`Gagal ambil verifikator: ${verifikatorError.message}`);
+      }
+
+      const { data: chiefNursingList, error: chiefNursingError } = await supabase
+        .from("users")
+        .select("id_user")
+        .eq("role", "chief_nursing");
+
+      if (chiefNursingError) {
+        throw new Error(`Gagal ambil chief nursing: ${chiefNursingError.message}`);
+      }
+
+      // ke perawat
       notifikasi.push({
         id_notifikasi: nanoid(),
         id_user: laporanUpdate.perawat.id_user,
-        message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
+        message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
       });
 
-      // Verifikator
-      verifikatorList?.forEach(v =>
+      // ke verifikator
+      verifikatorList?.forEach(v => {
         notifikasi.push({
           id_notifikasi: nanoid(),
           id_user: v.id_user,
-          message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
-        })
-      );
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan.`,
+        });
+      });
 
-      // Chief Nursing
-      chiefNursingList?.forEach(c =>
+      // ke chief nursing
+      chiefNursingList?.forEach(c => {
         notifikasi.push({
           id_notifikasi: nanoid(),
           id_user: c.id_user,
-          message: `Laporan ${kode_laporan} telah direvisi oleh kepala ruangan. Catatan: ${catatan}`,
-        })
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh kepala ruangan.`,
+        });
+      });
+
+      // ke diri sendiri
+      notifikasi.push({
+        id_notifikasi: nanoid(),
+        id_user,
+        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+      });
+
+    } else if (role === "verifikator") {
+      // ke perawat & kepala ruangan
+      notifikasi.push(
+        {
+          id_notifikasi: nanoid(),
+          id_user: laporanUpdate.perawat.id_user,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan: ${catatan}`,
+        },
+        {
+          id_notifikasi: nanoid(),
+          id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+        }
       );
+
+      // ke chief nursing
+      const { data: chiefNursingList } = await supabase
+        .from("users")
+        .select("id_user")
+        .eq("role", "chief_nursing");
+
+      chiefNursingList?.forEach(c => {
+        notifikasi.push({
+          id_notifikasi: nanoid(),
+          id_user: c.id_user,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+        });
+      });
+
+      // ke diri sendiri
+      notifikasi.push({
+        id_notifikasi: nanoid(),
+        id_user,
+        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+      });
+
+    } else if (role === "chief_nursing") {
+      // ke verifikator
+      const { data: verifikatorList } = await supabase
+        .from("users")
+        .select("id_user")
+        .eq("role", "verifikator");
+
+      verifikatorList?.forEach(v => {
+        notifikasi.push({
+          id_notifikasi: nanoid(),
+          id_user: v.id_user,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
+        });
+      });
+
+      // ke diri sendiri
+      notifikasi.push({
+        id_notifikasi: nanoid(),
+        id_user,
+        message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
+      });
     }
 
-    // Insert semua notifikasi
+    // eksekusi insert
     if (notifikasi.length > 0) {
-      const { error: notifError } = await supabase.from("notifikasi").insert(notifikasi);
-      if (notifError) throw new Error(`Gagal kirim notifikasi: ${notifError.message}`);
+      const { error: notifError } = await supabase
+        .from("notifikasi")
+        .insert(notifikasi);
+
+      if (notifError) {
+        throw new Error(`Gagal insert notifikasi: ${notifError.message}`);
+      }
+    }
+
+    // ================= EMAIL NOTIFIKASI =================
+    const link = `${process.env.FRONTEND_URL}`;
+
+    if (role === "kepala_ruangan") {
+      // kepala_ruangan -> verifikator & chief nursing
+      const { data: verifikatorList } = await supabase
+        .from("users")
+        .select("email")
+        .eq("role", "verifikator");
+
+      const { data: chiefNursingList } = await supabase
+        .from("users")
+        .select("email")
+        .eq("role", "chief_nursing");
+
+      const targets = [
+        ...(verifikatorList || []),
+        ...(chiefNursingList || []),
+      ];
+
+      for (const u of targets) {
+        const emailContent = emailTemplates.revisi(
+          kode_laporan,
+          catatan,
+          link,
+          "kepala_ruangan"
+        );
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      }
+
+    } else if (role === "verifikator") {
+      // verifikator -> kepala ruangan & chief nursing
+      const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
+
+      let kepalaEmail = null;
+      if (kepalaId) {
+        const { data: kepalaUser } = await supabase
+          .from("users")
+          .select("email")
+          .eq("id_user", kepalaId)
+          .maybeSingle();
+
+        kepalaEmail = kepalaUser?.email;
+      }
+
+      const { data: chiefNursingList } = await supabase
+        .from("users")
+        .select("email")
+        .eq("role", "chief_nursing");
+
+      const targets = [];
+      if (kepalaEmail) targets.push({ email: kepalaEmail });
+      targets.push(...(chiefNursingList || []));
+
+      for (const u of targets) {
+        const emailContent = emailTemplates.revisi(
+          kode_laporan,
+          catatan,
+          link,
+          "verifikator"
+        );
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      }
+
+    } else if (role === "chief_nursing") {
+      // chief nursing -> verifikator
+      const { data: verifikatorList } = await supabase
+        .from("users")
+        .select("email")
+        .eq("role", "verifikator");
+
+      for (const u of verifikatorList || []) {
+        const emailContent = emailTemplates.revisi(
+          kode_laporan,
+          catatan,
+          link,
+          "chief_nursing"
+        );
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: u.email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+        });
+      }
     }
 
     return res.status(200).json({
