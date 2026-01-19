@@ -1272,7 +1272,7 @@ export async function approveLaporan(req, res) {
 
         //kirimkan notifikasi ke WA verifikator dan chief nursing
 
-    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd") {
+    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd" && id_user !== "yRDjzhMBvRBDZxTcKNbAR") {
         const { data: chiefNursingList, error: chiefNursingError } = await supabase
             .from("users")
             .select("id_user")
@@ -1383,7 +1383,7 @@ export async function approveLaporan(req, res) {
         });
       });
 
-    } else if (role === 'verifikator' && id_user !== 'nLw9Qf7iJxTQ1t1J8rwQd') {
+    } else if (role === 'verifikator' && id_user !== 'nLw9Qf7iJxTQ1t1J8rwQd' && id_user !== 'yRDjzhMBvRBDZxTcKNbAR') {
       // verifikator -> kepala ruangan & chief nursing
       const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
       let kepalaEmail = null;
@@ -1588,7 +1588,7 @@ export async function revisiLaporan(req, res) {
         message: `Anda berhasil merevisi laporan dengan kode ${kode_laporan}.`,
       });
 
-    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd") {
+    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd" && id_user !== "yRDjzhMBvRBDZxTcKNbAR") {
       // ke perawat & kepala ruangan
       notifikasi.push(
         {
@@ -1694,7 +1694,7 @@ export async function revisiLaporan(req, res) {
         });
       }
 
-    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd") {
+    } else if (role === "verifikator" && id_user !== "nLw9Qf7iJxTQ1t1J8rwQd" && id_user !== "yRDjzhMBvRBDZxTcKNbAR") {
       // verifikator -> kepala ruangan & chief nursing
       const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
 
