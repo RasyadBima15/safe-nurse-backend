@@ -1385,7 +1385,7 @@ export async function approveLaporan(req, res) {
 
     } else if (role === 'verifikator' && id_user !== 'nLw9Qf7iJxTQ1t1J8rwQd' && id_user !== 'yRDjzhMBvRBDZxTcKNbAR') {
       // verifikator -> kepala ruangan & chief nursing
-      const kepalaId = laporanUpdate.ruangan?.kepala_ruangan?.[0]?.id_user;
+      const kepalaId = laporanData.ruangan?.kepala_ruangan?.id_user;
       let kepalaEmail = null;
       if (kepalaId) {
         const { data: kepalaUser } = await supabase.from("users").select("email").eq("id_user", kepalaId).maybeSingle();
