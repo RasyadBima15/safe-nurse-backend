@@ -1599,7 +1599,7 @@ export async function revisiLaporan(req, res) {
         {
           id_notifikasi: nanoid(),
           id_user: laporanUpdate.ruangan.kepala_ruangan[0].id_user,
-          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan: ${catatan}`,
         }
       );
 
@@ -1613,7 +1613,7 @@ export async function revisiLaporan(req, res) {
         notifikasi.push({
           id_notifikasi: nanoid(),
           id_user: c.id_user,
-          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator.`,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh verifikator. Catatan: ${catatan}`,
         });
       });
 
@@ -1635,7 +1635,7 @@ export async function revisiLaporan(req, res) {
         notifikasi.push({
           id_notifikasi: nanoid(),
           id_user: v.id_user,
-          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing.`,
+          message: `Laporan dengan kode ${kode_laporan} telah direvisi oleh chief nursing. Catatan: ${catatan}`,
         });
       });
 
