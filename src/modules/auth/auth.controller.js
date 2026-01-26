@@ -200,7 +200,7 @@ export async function login(req, res) {
       ...extraData,
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(payload, process.env.JWT_SECRET);
 
     // hanya kirim token
     return res.json({ token });
