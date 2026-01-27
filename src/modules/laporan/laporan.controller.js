@@ -633,9 +633,9 @@ export async function getLaporanForPerawat(req, res) {
           rencana_tindak_lanjut_kepala_ruangan: latestAksi2Kepala?.rencana_tindak_lanjut || "-",
           rencana_tindak_lanjut_chief_nursing: latestAksi2Chief?.rencana_tindak_lanjut || "-",
           rencana_tindak_lanjut_verifikator: latestAksi2Verif?.rencana_tindak_lanjut || "-",
-          catatan_kepala_ruangan: latestCatatanKepala?.rencana_tindak_lanjut || "-",
-          catatan_chief_nursing: latestCatatanChief?.rencana_tindak_lanjut || "-",
-          catatan_verifikator: latestCatatanVerif?.rencana_tindak_lanjut || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+          catatan_verifikator: latestCatatanVerif?.catatan || "-",
         };
       })
     );
