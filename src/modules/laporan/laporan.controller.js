@@ -71,7 +71,7 @@ export async function getLaporanByIdLaporan(req, res) {
     const latestCatatanChief = allHistoryCatatan?.find(h => h.users?.role === "chief_nursing");
 
     const latestVerifikator = allHistoryAksi?.find(h => h.users?.role === "verifikator");
-    // const latestCatatanVerifikator = allHistoryCatatan?.find(h => h.users?.role === "verifikator");
+    const latestCatatanVerifikator = allHistoryCatatan?.find(h => h.users?.role === "verifikator");
 
     // Helper kasih label "updated"
     const EXCLUDED_USER_ID = "yRDjzhMBvRBDZxTcKNbAR";
@@ -136,7 +136,6 @@ export async function getLaporanByIdLaporan(req, res) {
         kategori: latestKepala?.kategori || "-",
         grading: latestKepala?.grading || "-",
         kronologi: latestKepala?.kronologi || "-",
-        catatan: latestCatatanKepala?.catatan || "-",
         implementasi: latestKepala?.implementasi || "-",
         hasil: latestKepala?.hasil || "-",
         rencana_tindak_lanjut: latestKepala?.rencana_tindak_lanjut || "-"
@@ -145,7 +144,6 @@ export async function getLaporanByIdLaporan(req, res) {
         kategori: latestChief?.kategori || "-",
         grading: latestChief?.grading || "-",
         kronologi: latestChief?.kronologi || "-",
-        catatan: latestCatatanChief?.catatan || "-",
         implementasi: latestChief?.implementasi || "-",
         hasil: latestChief?.hasil || "-",
         rencana_tindak_lanjut: latestChief?.rencana_tindak_lanjut || "-"
@@ -158,6 +156,9 @@ export async function getLaporanByIdLaporan(req, res) {
       message: "Data laporan berhasil diambil.",
       data: {
         ...laporan,
+        catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+        catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+        catatan_verifikator: latestCatatanVerifikator?.catatan || "-",
         ...extraValidasi,
         history_aksi: historyAksi || [],
         history_catatan: historyCatatan || []
@@ -603,10 +604,20 @@ export async function getLaporanForPerawat(req, res) {
           }
         }
 
-        // --- Ambil history catatan terbaru per role ---
-        const { data: allHistoryCatatan } = await supabase
+        // --- Ambil history Aksi terbaru per role ---
+        const { data: allHistoryAksi2 } = await supabase
           .from("history_aksi")
           .select("rencana_tindak_lanjut, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .order("created_at", { ascending: false });
+
+        const latestAksi2Kepala = allHistoryAksi2?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestAksi2Chief = allHistoryAksi2?.find((c) => c.users?.role === "chief_nursing");
+        const latestAksi2Verif = allHistoryAksi2?.find((c) => c.users?.role === "verifikator");
+
+        const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .order("created_at", { ascending: false });
 
@@ -619,9 +630,12 @@ export async function getLaporanForPerawat(req, res) {
           kategori: override.kategori || "-",
           grading: override.grading || "-",
           kronologi: override.kronologi || "-",
-          rencana_tindak_lanjut_kepala_ruangan: latestCatatanKepala?.rencana_tindak_lanjut || "-",
-          rencana_tindak_lanjut_chief_nursing: latestCatatanChief?.rencana_tindak_lanjut || "-",
-          rencana_tindak_lanjut_verifikator: latestCatatanVerif?.rencana_tindak_lanjut || "-"
+          rencana_tindak_lanjut_kepala_ruangan: latestAksi2Kepala?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_chief_nursing: latestAksi2Chief?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_verifikator: latestAksi2Verif?.rencana_tindak_lanjut || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.rencana_tindak_lanjut || "-",
+          catatan_chief_nursing: latestCatatanChief?.rencana_tindak_lanjut || "-",
+          catatan_verifikator: latestCatatanVerif?.rencana_tindak_lanjut || "-",
         };
       })
     );
