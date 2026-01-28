@@ -31,7 +31,7 @@ export async function getLaporanByIdLaporan(req, res) {
     // 2. Ambil history aksi user ini
     const { data: historyAksi, error: aksiError } = await supabase
       .from("history_aksi")
-      .select("id_aksi, aksi, kategori, grading, kronologi, created_at")
+      .select("id_aksi, aksi, kategori, grading, kronologi, hasil, implementasi, rencana_tindak_lanjut, created_at")
       .eq("kode_laporan", kode_laporan)
       .eq("id_user", id_user)
       .order("created_at", { ascending: false })
