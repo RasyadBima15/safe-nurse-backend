@@ -1177,9 +1177,12 @@ export async function approveLaporan(req, res) {
     role === "verifikator" &&
     !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"].includes(laporanData.status)
     ) {
-    return res.status(400).json({
-        message: "Status laporan tidak valid untuk disetujui oleh verifikator",
-    });
+      if (laporanData.status === "laporan ditolak validator") {
+        return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh verifikator karena laporan ditolak oleh validator" });
+      }
+      if (laporanData.status === "diteruskan ke validator") {
+        return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh verifikator karena laporan belum divalidasi oleh validator" });
+      }
     }
 
     let newStatus = laporanData.status;
@@ -1187,10 +1190,8 @@ export async function approveLaporan(req, res) {
     if (role === "verifikator") {
       newStatus = "laporan disetujui verifikator";
     }
-    if (role === "chief_nursing") {
-      if (laporanData.status !== "laporan disetujui verifikator") {
-        newStatus = "laporan disetujui chief nursing";
-      }
+    if (role === "chief_nursing" && !["laporan ditolak validator", "diteruskan ke validator", "laporan disetujui verifikator"].includes(laporanData.status)) {
+      newStatus = "laporan disetujui chief nursing";
     }
 
     // ✅ Update laporan (status only, kecuali chief_nursing)
@@ -1524,17 +1525,20 @@ export async function revisiLaporan(req, res) {
       !["diteruskan ke verifikator", "laporan disetujui verifikator", "laporan disetujui chief nursing"]
         .includes(laporanData.status)
     ) {
-      return res.status(400).json({
-        message: "Status laporan tidak valid untuk direvisi oleh verifikator",
-      });
+      if (laporanData.status === "laporan ditolak validator") {
+        return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh verifikator karena laporan ditolak oleh validator" });
+      }
+      if (laporanData.status === "diteruskan ke validator") {
+        return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh verifikator karena laporan belum divalidasi oleh validator" });
+      }
     }
 
     // Tentukan status baru
-    let newStatus = null;
+    let newStatus = laporanData.status;
     if (role === "kepala_ruangan" && laporanData.status !== "laporan disetujui verifikator") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator" &&
       id_user !== "yRDjzhMBvRBDZxTcKNbAR") newStatus = "laporan disetujui verifikator";
-    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+    if (role === "chief_nursing" && !["laporan ditolak validator", "diteruskan ke validator", "laporan disetujui verifikator"].includes(laporanData.status)) {
       newStatus = "laporan disetujui chief nursing";
     }
 
