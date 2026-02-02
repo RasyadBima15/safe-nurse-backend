@@ -1214,7 +1214,7 @@ export async function approveLaporan(req, res) {
       }
     }
 
-    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+    if (role === "chief_nursing" && !["laporan ditolak validator", "diteruskan ke validator", "laporan disetujui verifikator"].includes(laporanData.status)) {
       if (newStatus) {
         const { data, error: updateError } = await supabase
           .from("laporan")
@@ -1559,7 +1559,7 @@ export async function revisiLaporan(req, res) {
       }
     }
 
-    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+    if (role === "chief_nursing" && !["laporan ditolak validator", "diteruskan ke validator", "laporan disetujui verifikator"].includes(laporanData.status)) {
       if (newStatus) {
         const { data, error: updateError } = await supabase
           .from("laporan")
