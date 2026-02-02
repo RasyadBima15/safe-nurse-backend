@@ -1046,12 +1046,13 @@ export async function rejectLaporan(req, res) {
     if (laporanError) throw new Error(`Gagal cek laporan: ${laporanError.message}`);
     if (!laporan) return res.status(404).json({ message: "Laporan tidak ditemukan" });
 
-    if (laporan.status === "laporan disetujui verifikator") {
-      return res.status(400).json({ message: "Status laporan tidak valid untuk ditolak" });
-    }
+    // if (laporan.status === "laporan disetujui verifikator") {
+    //   return res.status(400).json({ message: "Status laporan tidak valid untuk ditolak" });
+    // }
 
     // Update status laporan
-    const { data: laporanUpdate, error: updateError } = await supabase
+    if (laporan.status !== "laporan disetujui verifikator") {
+      const { data: laporanUpdate, error: updateError } = await supabase
       .from("laporan")
       .update({ status: "laporan ditolak validator" })
       .eq("kode_laporan", kode_laporan)
@@ -1059,6 +1060,7 @@ export async function rejectLaporan(req, res) {
       .single();
 
     if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+    }
 
     // Insert history_aksi
     const aksiInsert = {
@@ -1162,14 +1164,14 @@ export async function approveLaporan(req, res) {
     }
 
     // 🔎 Validasi status sesuai role
-    if (role === "kepala_ruangan" && laporanData.status === "laporan disetujui verifikator") {
-      return res.status(400).json({ message: "Status laporan tidak valid untuk disetujui oleh kepala_ruangan" });
-    }
+    // if (role === "kepala_ruangan" && laporanData.status === "laporan disetujui verifikator") {
+    //   return res.status(400).json({ message: "Status laporan tidak valid untuk disetujui oleh kepala_ruangan" });
+    // }
 
-    if (role === "chief_nursing" &&
-        ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)) {
-      return res.status(400).json({ message: "Status laporan tidak valid untuk disetujui oleh chief_nursing" });
-    }
+    // if (role === "chief_nursing" &&
+    //     ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)) {
+    //   return res.status(400).json({ message: "Status laporan tidak valid untuk disetujui oleh chief_nursing" });
+    // }
 
     if (
     role === "verifikator" &&
@@ -1181,7 +1183,7 @@ export async function approveLaporan(req, res) {
     }
 
     let newStatus = laporanData.status;
-    if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
+    if (role === "kepala_ruangan" && laporanData.status !== "laporan disetujui verifikator") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator") {
       newStatus = "laporan disetujui verifikator";
     }
@@ -1193,20 +1195,60 @@ export async function approveLaporan(req, res) {
 
     // ✅ Update laporan (status only, kecuali chief_nursing)
     let laporanUpdate = laporanData;
-    if (newStatus) {
-      const { data, error: updateError } = await supabase
-        .from("laporan")
-        .update({ status: newStatus })
-        .eq("kode_laporan", kode_laporan)
-        .select(`
-          *,
-          perawat:id_perawat(id_user, nama_perawat),
-          ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
-        `)
-        .single();
 
-      if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
-      laporanUpdate = data;
+    if (role === "kepala_ruangan" && laporanData.status !== "laporan disetujui verifikator") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: laporanUpdate.grading, kategori: laporanUpdate.kategori, kronologi: laporanUpdate.kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
+
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
+    }
+
+    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: laporanUpdate.grading, kategori: laporanUpdate.kategori, kronologi: laporanUpdate.kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
+
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
+    }
+
+    if (role === "verifikator" &&
+      id_user !== "yRDjzhMBvRBDZxTcKNbAR") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: laporanUpdate.grading, kategori: laporanUpdate.kategori, kronologi: laporanUpdate.kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
+
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
     }
 
     // 📝 Insert history_aksi
@@ -1465,16 +1507,16 @@ export async function revisiLaporan(req, res) {
     }
 
     // Validasi status berdasarkan role
-    if (role === "kepala_ruangan" && laporanData.status === "laporan disetujui verifikator") {
-      return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh kepala_ruangan" });
-    }
+    // if (role === "kepala_ruangan" && laporanData.status === "laporan disetujui verifikator") {
+    //   return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh kepala_ruangan" });
+    // }
 
-    if (
-      role === "chief_nursing" &&
-      ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)
-    ) {
-      return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh chief_nursing" });
-    }
+    // if (
+    //   role === "chief_nursing" &&
+    //   ["laporan ditolak validator", "diteruskan ke validator"].includes(laporanData.status)
+    // ) {
+    //   return res.status(400).json({ message: "Status laporan tidak valid untuk direvisi oleh chief_nursing" });
+    // }
 
     if (
       role === "verifikator" &&
@@ -1489,7 +1531,7 @@ export async function revisiLaporan(req, res) {
 
     // Tentukan status baru
     let newStatus = null;
-    if (role === "kepala_ruangan") newStatus = "diteruskan ke verifikator";
+    if (role === "kepala_ruangan" && laporanData.status !== "laporan disetujui verifikator") newStatus = "diteruskan ke verifikator";
     if (role === "verifikator" &&
       id_user !== "yRDjzhMBvRBDZxTcKNbAR") newStatus = "laporan disetujui verifikator";
     if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
@@ -1499,20 +1541,59 @@ export async function revisiLaporan(req, res) {
     // Update status jika diperlukan
     let laporanUpdate = laporanData;
 
-    if (newStatus) {
-      const { data, error: updateError } = await supabase
-        .from("laporan")
-        .update({ status: newStatus })
-        .eq("kode_laporan", kode_laporan)
-        .select(`
-          *,
-          perawat:id_perawat(id_user, nama_perawat),
-          ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
-        `)
-        .single();
+    if (role === "kepala_ruangan" && laporanData.status !== "laporan disetujui verifikator") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: grading, kategori: kategori, kronologi: kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
 
-      if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
-      laporanUpdate = data;
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
+    }
+
+    if (role === "chief_nursing" && laporanData.status !== "laporan disetujui verifikator") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: grading, kategori: kategori, kronologi: kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
+
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
+    }
+
+    if (role === "verifikator" &&
+      id_user !== "yRDjzhMBvRBDZxTcKNbAR") {
+      if (newStatus) {
+        const { data, error: updateError } = await supabase
+          .from("laporan")
+          .update({ status: newStatus, grading: grading, kategori: kategori, kronologi: kronologi })
+          .eq("kode_laporan", kode_laporan)
+          .select(`
+            *,
+            perawat:id_perawat(id_user, nama_perawat),
+            ruangan:id_ruangan(nama_ruangan, kepala_ruangan(id_user, nama_kepala_ruangan))
+          `)
+          .single();
+
+        if (updateError) throw new Error(`Gagal update laporan: ${updateError.message}`);
+        laporanUpdate = data;
+      }
     }
 
     const aksiValue = id_user === "yRDjzhMBvRBDZxTcKNbAR" ? "-" : "revisi";
