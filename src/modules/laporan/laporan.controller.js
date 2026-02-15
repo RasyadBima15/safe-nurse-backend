@@ -430,7 +430,7 @@ export async function getAllLaporanForVerifikator(req, res) {
 
         const { data: allHistoryAksi2 } = await supabase
           .from("history_aksi")
-          .select("kategori, grading, kronologi, hasil, rencana_tindak_lanjut, created_at, users(role)")
+          .select("kategori, grading, kronologi, hasil, implementasi, rencana_tindak_lanjut, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .order("created_at", { ascending: false });
 
@@ -465,9 +465,9 @@ export async function getAllLaporanForVerifikator(req, res) {
           kronologi_kepala_ruangan: latestAksiKepala?.kronologi || "-",
           kronologi_chief_nursing: latestAksiChief?.kronologi || "-",
           kronologi_verifikator: latestAksiVerif?.kronologi || "-",
-          implementasi_kepala_ruangan: latestAksiKepala?.hasil || "-",
-          implementasi_chief_nursing: latestAksiChief?.hasil || "-",
-          implementasi_verifikator: latestAksiVerif?.hasil || "-",
+          implementasi_kepala_ruangan: latestAksiKepala?.implementasi || "-",
+          implementasi_chief_nursing: latestAksiChief?.implementasi || "-",
+          implementasi_verifikator: latestAksiVerif?.implementasi || "-",
           hasil_kepala_ruangan: latestAksiKepala?.hasil || "-",
           hasil_chief_nursing: latestAksiChief?.hasil || "-",
           hasil_verifikator: latestAksiVerif?.hasil || "-",
