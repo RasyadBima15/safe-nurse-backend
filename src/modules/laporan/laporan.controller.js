@@ -430,7 +430,7 @@ export async function getAllLaporanForVerifikator(req, res) {
 
         const { data: allHistoryAksi2 } = await supabase
           .from("history_aksi")
-          .select("rencana_tindak_lanjut, created_at, users(role)")
+          .select("kategori, grading, kronologi, hasil, rencana_tindak_lanjut, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .order("created_at", { ascending: false });
 
