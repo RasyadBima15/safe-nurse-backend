@@ -428,25 +428,52 @@ export async function getAllLaporanForVerifikator(req, res) {
           }
         }
 
-        // --- Ambil history catatan terbaru per role ---
-        const { data: allHistoryCatatan } = await supabase
+        const { data: allHistoryAksi2 } = await supabase
           .from("history_aksi")
           .select("rencana_tindak_lanjut, created_at, users(role)")
           .eq("kode_laporan", laporan.kode_laporan)
           .order("created_at", { ascending: false });
 
-        const latestCatatanKepala = allHistoryCatatan?.find((c) => c.users?.role === "kepala_ruangan");
-        const latestCatatanChief = allHistoryCatatan?.find((c) => c.users?.role === "chief_nursing");
-        const latestCatatanVerif = allHistoryCatatan?.find((c) => c.users?.role === "verifikator");
+          const { data: allHistoryCatatan } = await supabase
+          .from("history_catatan")
+          .select("catatan, created_at, users(role)")
+          .eq("kode_laporan", laporan.kode_laporan)
+          .order("created_at", { ascending: false });
+
+        const latestCatatanKepala = allHistoryCatatan?.find(h => h.users?.role === "kepala_ruangan");
+        const latestCatatanChief = allHistoryCatatan?.find(h => h.users?.role === "chief_nursing");
+        const latestCatatanVerifikator = allHistoryCatatan?.find(h => h.users?.role === "verifikator");
+
+        const latestAksiKepala = allHistoryAksi2?.find((c) => c.users?.role === "kepala_ruangan");
+        const latestAksiChief = allHistoryAksi2?.find((c) => c.users?.role === "chief_nursing");
+        const latestAksiVerif = allHistoryAksi2?.find((c) => c.users?.role === "verifikator");
 
         return {
           ...laporan,
           kategori: override.kategori || "-",
           grading: override.grading || "-",
           kronologi: override.kronologi || "-",
-          rencana_tindak_lanjut_kepala_ruangan: latestCatatanKepala?.rencana_tindak_lanjut || "-",
-          rencana_tindak_lanjut_chief_nursing: latestCatatanChief?.rencana_tindak_lanjut || "-",
-          rencana_tindak_lanjut_verifikator: latestCatatanVerif?.rencana_tindak_lanjut || "-",
+          catatan_kepala_ruangan: latestCatatanKepala?.catatan || "-",
+          catatan_chief_nursing: latestCatatanChief?.catatan || "-",
+          catatan_verifikator: latestCatatanVerifikator?.catatan || "-",
+          kategori_kepala_ruangan: latestAksiKepala?.kategori || "-",
+          kategori_chief_nursing: latestAksiChief?.kategori || "-",
+          kategori_verifikator: latestAksiVerif?.kategori || "-",
+          grading_kepala_ruangan: latestAksiKepala?.grading || "-",
+          grading_chief_nursing: latestAksiChief?.grading || "-",
+          grading_verifikator: latestAksiVerif?.grading || "-",
+          kronologi_kepala_ruangan: latestAksiKepala?.kronologi || "-",
+          kronologi_chief_nursing: latestAksiChief?.kronologi || "-",
+          kronologi_verifikator: latestAksiVerif?.kronologi || "-",
+          implementasi_kepala_ruangan: latestAksiKepala?.implementasi || "-",
+          implementasi_chief_nursing: latestAksiChief?.implementasi || "-",
+          implementasi_verifikator: latestAksiVerif?.implementasi || "-",
+          hasil_kepala_ruangan: latestAksiKepala?.hasil || "-",
+          hasil_chief_nursing: latestAksiChief?.hasil || "-",
+          hasil_verifikator: latestAksiVerif?.hasil || "-",
+          rencana_tindak_lanjut_kepala_ruangan: latestAksiKepala?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_chief_nursing: latestAksiChief?.rencana_tindak_lanjut || "-",
+          rencana_tindak_lanjut_verifikator: latestAksiVerif?.rencana_tindak_lanjut || "-",
           tindak_lanjut: tindak_lanjut
         };
       })
